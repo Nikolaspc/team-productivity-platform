@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,14 +15,99 @@ enum Role {
   ADMIN
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String?
-  role      Role     @default(USER)
+  id              Int           @id @default(autoincrement())
+  email           String        @unique
+  password        String
+  name            String?
+  role            Role          @default(USER)
+  
+  // CRITICAL: Added for Refresh Token Rotation security
+  refreshTokenHash String?      @map("refresh_token_hash")
+
+  teams           TeamMember[]
+  assignedTasks   Task[]        @relation("TaskAssignee")
+  invitationsSent Invitation[]  @relation("Inviter")
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?     // Soft delete support
+}
+
+model Team {
+  id          Int           @id @default(autoincrement())
+  name        String
+  members     TeamMember[]
+  projects    Project[]
+  invitations Invitation[]
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+}
+
+model TeamMember {
+  id     Int    @id @default(autoincrement())
+  role   String // e.g., "Owner", "Contributor"
+  user   User   @relation(fields: [userId], references: [id])
+  userId Int
+  team   Team   @relation(fields: [teamId], references: [id])
+  teamId Int
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("users")
+  @@unique([userId, teamId])
+}
+
+model Project {
+  id        Int      @id @default(autoincrement())
+  name      String
+  team      Team     @relation(fields: [teamId], references: [id])
+  teamId    Int
+  tasks     Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  status      String    @default("TODO") 
+  dueDate     DateTime?
+  
+  assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  assigneeId  Int?
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   Int
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model Invitation {
+  id         Int              @id @default(autoincrement())
+  email      String           // Target email
+  token      String           @unique
+  status     InvitationStatus @default(PENDING)
+  expiresAt  DateTime
+  
+  inviter    User             @relation("Inviter", fields: [inviterId], references: [id])
+  inviterId  Int
+  team       Team             @relation(fields: [teamId], references: [id])
+  teamId     Int
+
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 }
