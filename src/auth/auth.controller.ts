@@ -9,11 +9,14 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto'; // Updated path
+import { AuthService } from './auth.service.js';
+import { RegisterDto, LoginDto } from './dto/auth.dto.js';
 import { JwtService } from '@nestjs/jwt';
 import type { Response, Request } from 'express';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Public } from '../common/decorators/public.decorator.js';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -21,7 +24,10 @@ export class AuthController {
     private jwtService: JwtService,
   ) {}
 
+  @Public() // English: Allow public access for registration
   @Post('register')
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiResponse({ status: 201, description: 'User created' })
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
@@ -31,8 +37,11 @@ export class AuthController {
     return user;
   }
 
+  @Public() // English: Allow public access for login
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'User login' })
+  @ApiResponse({ status: 200, description: 'Success' })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -44,8 +53,8 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'User logout' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    // English: Get token from cookies to identify user session
     const token = req.cookies['access_token'];
     if (token) {
       try {
@@ -54,7 +63,7 @@ export class AuthController {
         });
         await this.authService.logout(payload.sub);
       } catch (e) {
-        /* English: Token might be already expired, just clear cookies */
+        // English: Token expired, proceed to clear cookies anyway
       }
     }
     res.clearCookie('access_token');
@@ -62,15 +71,18 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 
+  @Public() // English: Refresh endpoint must be public to receive the RT cookie
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token' })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies['refresh_token'];
-    if (!refreshToken)
+    if (!refreshToken) {
       throw new UnauthorizedException('No refresh token provided');
+    }
 
     try {
       const payload = await this.jwtService.verifyAsync(refreshToken, {
@@ -91,20 +103,19 @@ export class AuthController {
     res: Response,
     tokens: { access_token: string; refresh_token: string },
   ) {
-    // English: Security configuration for HttpOnly cookies
     res.cookie('access_token', tokens.access_token, {
       httpOnly: true,
       secure: false, // Set to true in production with HTTPS
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
-      secure: false,
+      secure: false, // Set to true in production with HTTPS
       sameSite: 'strict',
       path: '/api/v1/auth/refresh',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
   }
 }

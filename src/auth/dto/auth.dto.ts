@@ -1,32 +1,31 @@
-// src/auth/dto/auth.dto.ts
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
-/**
- * Data Transfer Object for user registration
- */
 export class RegisterDto {
+  @ApiProperty({ example: 'user@example.com' })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()
   email: string;
 
+  @ApiProperty({ example: 'password123', minLength: 8 })
   @IsString()
   @IsNotEmpty()
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password: string;
 
+  @ApiProperty({ example: 'John Doe' })
   @IsString()
   @IsNotEmpty()
   name: string;
 }
 
-/**
- * Data Transfer Object for user login
- */
 export class LoginDto {
+  @ApiProperty({ example: 'user@example.com' })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()
   email: string;
 
+  @ApiProperty({ example: 'password123' })
   @IsString()
   @IsNotEmpty()
   password: string;

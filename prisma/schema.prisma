@@ -9,6 +9,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- ENUMS (Business Logic) ---
 enum Role {
   USER
   MANAGER
@@ -22,23 +23,30 @@ enum InvitationStatus {
   EXPIRED
 }
 
-model User {
-  id              Int           @id @default(autoincrement())
-  email           String        @unique
-  password        String
-  name            String?
-  role            Role          @default(USER)
-  
-  // CRITICAL: Added for Refresh Token Rotation security
-  refreshTokenHash String?      @map("refresh_token_hash")
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
 
-  teams           TeamMember[]
-  assignedTasks   Task[]        @relation("TaskAssignee")
-  invitationsSent Invitation[]  @relation("Inviter")
+// --- MODELS ---
+
+model User {
+  id               Int           @id @default(autoincrement())
+  email            String        @unique
+  password         String
+  name             String?
+  role             Role          @default(USER)
+  refreshTokenHash String?       @map("refresh_token_hash")
+
+  // Relations
+  teams            TeamMember[]
+  assignedTasks    Task[]        @relation("TaskAssignee")
+  invitationsSent  Invitation[]  @relation("Inviter")
   
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deletedAt       DateTime?     // Soft delete support
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
 }
 
 model Team {
@@ -54,12 +62,12 @@ model Team {
 }
 
 model TeamMember {
-  id     Int    @id @default(autoincrement())
-  role   String // e.g., "Owner", "Contributor"
-  user   User   @relation(fields: [userId], references: [id])
-  userId Int
-  team   Team   @relation(fields: [teamId], references: [id])
-  teamId Int
+  id        Int      @id @default(autoincrement())
+  role      String   
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId    Int
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -70,8 +78,8 @@ model TeamMember {
 model Project {
   id        Int      @id @default(autoincrement())
   name      String
-  team      Team     @relation(fields: [teamId], references: [id])
   teamId    Int
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   tasks     Task[]
 
   createdAt DateTime @default(now())
@@ -80,33 +88,49 @@ model Project {
 }
 
 model Task {
-  id          Int       @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   title       String
   description String?
-  status      String    @default("TODO") 
+  status      TaskStatus   @default(TODO)
   dueDate     DateTime?
   
-  assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  assigneeId  Int?
-  project     Project   @relation(fields: [projectId], references: [id])
   projectId   Int
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  assigneeId  Int?
+  assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  // English: Relation to handle multiple cloud attachments
+  attachments Attachment[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   deletedAt   DateTime?
+}
+
+model Attachment {
+  id        Int      @id @default(autoincrement())
+  filename  String   
+  url       String   
+  mimetype  String   
+  size      Int      
+  
+  taskId    Int
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }
 
 model Invitation {
   id         Int              @id @default(autoincrement())
-  email      String           // Target email
+  email      String           
   token      String           @unique
   status     InvitationStatus @default(PENDING)
   expiresAt  DateTime
-  
-  inviter    User             @relation("Inviter", fields: [inviterId], references: [id])
   inviterId  Int
-  team       Team             @relation(fields: [teamId], references: [id])
+  inviter    User             @relation("Inviter", fields: [inviterId], references: [id], onDelete: Cascade)
   teamId     Int
+  team       Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
