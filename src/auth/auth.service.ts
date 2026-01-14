@@ -1,61 +1,53 @@
-// src/auth/auth.service.ts
-import {
-  Injectable,
-  ForbiddenException,
-  UnauthorizedException,
-  ConflictException,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
-import { UserEntity } from './entities/user.entity';
-import * as argon2 from 'argon2';
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
+import * as argon2 from 'argon2';
+import { RegisterDto, LoginDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private config: ConfigService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async signupLocal(dto: RegisterDto) {
     const hash = await argon2.hash(dto.password);
-    try {
-      const user = await this.prisma.user.create({
-        data: {
-          email: dto.email,
-          password: hash,
-          name: dto.name,
-        },
-      });
+    const newUser = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        password: hash,
+        name: dto.name,
+      },
+    });
 
-      const tokens = await this.getTokens(user.id, user.email, user.role);
-      await this.updateRtHash(user.id, tokens.refresh_token);
-
-      return { user: new UserEntity(user), tokens };
-    } catch (error) {
-      throw new ConflictException('Credentials taken or invalid data');
-    }
+    const tokens = await this.getTokens(
+      newUser.id,
+      newUser.email,
+      newUser.role,
+    );
+    await this.updateRtHash(newUser.id, tokens.refresh_token);
+    return tokens;
   }
 
-  async login(dto: LoginDto) {
+  async signinLocal(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    if (!user) throw new ForbiddenException('Access Denied');
 
     const passwordMatches = await argon2.verify(user.password, dto.password);
-    if (!passwordMatches)
-      throw new UnauthorizedException('Invalid credentials');
+    if (!passwordMatches) throw new ForbiddenException('Access Denied');
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.updateRtHash(user.id, tokens.refresh_token);
-
-    return { user: new UserEntity(user), tokens };
+    return tokens;
   }
 
   async logout(userId: number) {
-    // Enterprise standard: Clear the refresh token from DB on logout
     await this.prisma.user.updateMany({
       where: {
         id: userId,
@@ -78,8 +70,7 @@ export class AuthService {
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.updateRtHash(user.id, tokens.refresh_token);
-
-    return { user: new UserEntity(user), tokens };
+    return tokens;
   }
 
   async updateRtHash(userId: number, rt: string) {
@@ -94,14 +85,23 @@ export class AuthService {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(
         { sub: userId, email, role },
-        { secret: process.env.AT_SECRET, expiresIn: '15m' },
+        {
+          secret: this.config.get<string>('AT_SECRET'),
+          expiresIn: '15m',
+        },
       ),
       this.jwtService.signAsync(
         { sub: userId, email, role },
-        { secret: process.env.RT_SECRET, expiresIn: '7d' },
+        {
+          secret: this.config.get<string>('RT_SECRET'),
+          expiresIn: '7d',
+        },
       ),
     ]);
 
-    return { access_token: at, refresh_token: rt };
+    return {
+      access_token: at,
+      refresh_token: rt,
+    };
   }
 }

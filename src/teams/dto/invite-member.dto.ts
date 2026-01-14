@@ -11,5 +11,5 @@ export class InviteMemberDto {
   @IsNotEmpty()
   // English: Normalizes email to lowercase before validation and persistence
   @Transform(({ value }) => value?.trim().toLowerCase())
-  email: string;
+  email!: string; // English: Fixed TS2564 with !
 }

@@ -1,4 +1,3 @@
-// src/prisma/prisma.service.ts
 import { Injectable, OnModuleInit, INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
@@ -8,12 +7,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     await this.$connect();
   }
 
-  // Creamos un cliente extendido para manejar el filtrado automático
   readonly extendedClient = this.$extends({
     query: {
       $allModels: {
         async findMany({ model, operation, args, query }) {
-          // Aplicamos el filtro si el modelo tiene el campo deletedAt
           if (args.where) {
             args.where = { ...args.where, deletedAt: null };
           } else {
@@ -30,7 +27,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
           return query(args);
         },
         async findUnique({ model, operation, args, query }) {
-          // findUnique es estricto; lo tratamos como findFirst para permitir el filtrado
           return (this as any).findFirst(args);
         },
       },

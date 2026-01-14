@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsString, IsInt, MinLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsInt,
+  MinLength,
+  IsOptional,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateProjectDto {
@@ -10,7 +16,16 @@ export class CreateProjectDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
-  name: string;
+  name!: string;
+
+  @ApiProperty({
+    description: 'A brief description of the project purpose',
+    example: 'Project focused on Q1 social media growth',
+    required: false, // English: Not required in Swagger UI
+  })
+  @IsString()
+  @IsOptional() // English: Crucial to avoid the "should not exist" error
+  description?: string;
 
   @ApiProperty({
     description: 'The ID of the team this project belongs to',
@@ -18,5 +33,5 @@ export class CreateProjectDto {
   })
   @IsInt()
   @IsNotEmpty()
-  teamId: number;
+  teamId!: number;
 }

@@ -1,22 +1,21 @@
-// src/dashboard/dto/project-stats.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ProjectStatsDto {
   @ApiProperty()
-  projectId: number;
+  projectId!: number;
 
   @ApiProperty()
-  projectName: string;
+  projectName!: string;
 
   @ApiProperty()
-  totalTasks: number;
+  totalTasks!: number;
 
   @ApiProperty()
-  completedTasks: number;
+  completedTasks!: number;
 
   @ApiProperty()
-  pendingTasks: number;
+  pendingTasks!: number;
 
   @ApiProperty()
-  overdueTasks: number;
+  overdueTasks!: number;
 }

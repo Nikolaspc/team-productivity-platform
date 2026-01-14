@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common';
-import { NotificationsGateway } from './notifications.gateway.js';
+import { NotificationsGateway } from './notifications.gateway';
 
-@Global() // English: Make it global so TasksService can use it easily
+@Global() // English: Makes NotificationsGateway available everywhere without re-importing
 @Module({
   providers: [NotificationsGateway],
   exports: [NotificationsGateway],

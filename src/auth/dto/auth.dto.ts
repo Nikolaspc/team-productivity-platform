@@ -5,28 +5,28 @@ export class RegisterDto {
   @ApiProperty({ example: 'user@example.com' })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'password123', minLength: 8 })
   @IsString()
   @IsNotEmpty()
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
-  password: string;
+  password!: string;
 
   @ApiProperty({ example: 'John Doe' })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 }
 
 export class LoginDto {
   @ApiProperty({ example: 'user@example.com' })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'password123' })
   @IsString()
   @IsNotEmpty()
-  password: string;
+  password!: string;
 }

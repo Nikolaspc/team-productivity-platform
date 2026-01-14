@@ -1,6 +1,6 @@
 // src/dashboard/dashboard.service.ts
 import { Injectable, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service';
 import { TaskStatus } from '@prisma/client'; // English: Import the generated Enum from Prisma
 
 @Injectable()

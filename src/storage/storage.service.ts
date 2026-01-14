@@ -13,6 +13,7 @@ export class StorageService {
   private readonly logger = new Logger(StorageService.name);
 
   constructor(private config: ConfigService) {
+    // English: Initialize S3 Client with credentials from environment
     this.s3Client = new S3Client({
       region: this.config.get<string>('STORAGE_REGION')!,
       endpoint: this.config.get<string>('STORAGE_ENDPOINT')!,
@@ -47,8 +48,6 @@ export class StorageService {
     const bucket = this.config.get<string>('STORAGE_BUCKET')!;
 
     try {
-      // English: Robust key extraction.
-      // We look for the position after '/bucket-name/' to get the full key.
       const bucketMarker = `/${bucket}/`;
       const markerIndex = fileUrl.indexOf(bucketMarker);
 
@@ -66,9 +65,10 @@ export class StorageService {
       });
 
       await this.s3Client.send(command);
-    } catch (error) {
+    } catch (error: any) {
+      // English: Explicitly handle 'unknown' error type for TS18046
       this.logger.error(`Cloud Delete Error: ${error.message}`);
-      throw error; // English: Propagate to TasksService
+      throw error;
     }
   }
 }

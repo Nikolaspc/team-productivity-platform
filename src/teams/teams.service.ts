@@ -1,4 +1,3 @@
-// src/teams/teams.service.ts
 import {
   Injectable,
   ForbiddenException,
@@ -6,9 +5,9 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateTeamDto } from './dto/create-team.dto.js';
-import { InviteMemberDto } from './dto/invite-member.dto.js';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateTeamDto } from './dto/create-team.dto';
+import { InviteMemberDto } from './dto/invite-member.dto';
 import { randomBytes } from 'node:crypto';
 
 @Injectable()
@@ -23,12 +22,10 @@ export class TeamsService {
   async create(dto: CreateTeamDto, userId: number) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        // 1. English: Create the team
         const team = await tx.team.create({
           data: { name: dto.name },
         });
 
-        // 2. English: Create the membership record for the creator
         await tx.teamMember.create({
           data: {
             userId: userId,
@@ -39,7 +36,8 @@ export class TeamsService {
 
         return team;
       });
-    } catch (error) {
+    } catch (error: any) {
+      // English: Explicitly cast error to any to access .message in strict mode
       this.logger.error(`Error creating team: ${error.message}`);
       throw new InternalServerErrorException(
         `Transaction failed: ${error.message}`,
@@ -47,9 +45,6 @@ export class TeamsService {
     }
   }
 
-  /**
-   * English: Retrieves all teams where the current user is a member
-   */
   async findAllMyTeams(userId: number) {
     return this.prisma.team.findMany({
       where: {
@@ -65,9 +60,6 @@ export class TeamsService {
     });
   }
 
-  /**
-   * English: Generates a unique invitation token for a team
-   */
   async inviteMember(teamId: number, inviterId: number, dto: InviteMemberDto) {
     const membership = await this.prisma.teamMember.findUnique({
       where: {
@@ -97,9 +89,6 @@ export class TeamsService {
     });
   }
 
-  /**
-   * English: Validates invitation token and adds user to the team
-   */
   async acceptInvitation(token: string, userId: number) {
     const invitation = await this.prisma.invitation.findUnique({
       where: { token },
@@ -117,21 +106,25 @@ export class TeamsService {
       throw new ForbiddenException('Invitation token has expired');
     }
 
-    return await this.prisma.$transaction(async (tx) => {
-      const membership = await tx.teamMember.create({
-        data: {
-          userId,
-          teamId: invitation.teamId,
-          role: 'MEMBER',
-        },
-      });
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const membership = await tx.teamMember.create({
+          data: {
+            userId,
+            teamId: invitation.teamId,
+            role: 'MEMBER',
+          },
+        });
 
-      await tx.invitation.update({
-        where: { id: invitation.id },
-        data: { status: 'ACCEPTED' },
-      });
+        await tx.invitation.update({
+          where: { id: invitation.id },
+          data: { status: 'ACCEPTED' },
+        });
 
-      return membership;
-    });
+        return membership;
+      });
+    } catch (error: any) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

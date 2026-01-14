@@ -15,7 +15,7 @@ export class NotificationsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  server: Server;
+  server!: Server; // English: Fixed TS2564 with !
 
   handleConnection(client: Socket) {
     console.log(`[WebSocket] Client connected: ${client.id}`);
@@ -27,9 +27,11 @@ export class NotificationsGateway
 
   // English: Method to notify all members of a team about a change
   notifyTaskUpdate(teamId: number, taskTitle: string, action: string) {
-    this.server.emit(`team_${teamId}`, {
-      message: `Task "${taskTitle}" was ${action}`,
-      timestamp: new Date(),
-    });
+    if (this.server) {
+      this.server.emit(`team_${teamId}`, {
+        message: `Task "${taskTitle}" was ${action}`,
+        timestamp: new Date(),
+      });
+    }
   }
 }

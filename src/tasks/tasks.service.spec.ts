@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TasksService } from './tasks.service.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { NotificationsGateway } from '../notifications/notifications.gateway.js';
+import { TasksService } from './tasks.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 describe('TasksService', () => {
   let service: TasksService;

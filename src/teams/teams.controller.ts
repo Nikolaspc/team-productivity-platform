@@ -1,87 +1,24 @@
-// src/teams/teams.controller.ts
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Req,
-  Param,
-  ParseIntPipe,
-  HttpCode,
-  HttpStatus,
-  Logger,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import { TeamsService } from './teams.service.js';
-import { CreateTeamDto } from './dto/create-team.dto.js';
-import { InviteMemberDto } from './dto/invite-member.dto.js';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiResponse,
-} from '@nestjs/swagger';
-import type { Request } from 'express';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { TeamsService } from './teams.service';
+import { CreateTeamDto } from './dto/create-team.dto';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '@prisma/client';
+import { GetCurrentUserId } from '../common/decorators';
+import { AtGuard } from '../auth/guards/at.guard';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('teams')
-@ApiBearerAuth()
+// English: This name 'access-token' MUST match the name in main.ts
+@ApiBearerAuth('access-token')
+@UseGuards(AtGuard, RolesGuard) // English: Order matters: 1. Verify Token, 2. Verify Role
 @Controller('teams')
 export class TeamsController {
-  private readonly logger = new Logger(TeamsController.name);
-
-  constructor(private readonly teamsService: TeamsService) {}
+  constructor(private teamsService: TeamsService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new team' })
-  @ApiResponse({
-    status: 201,
-    description: 'The team has been successfully created.',
-  })
-  async create(@Body() dto: CreateTeamDto, @Req() req: Request) {
-    const user = req.user as any;
-    // English: Extracted userId from the request object as identified in previous logs
-    const userId = user?.userId;
-
-    if (!userId) {
-      this.logger.error(
-        'User ID not found in req.user. Ensure AtGuard is working.',
-      );
-      throw new InternalServerErrorException(
-        'Session invalid or user context missing',
-      );
-    }
-
+  @Roles(Role.ADMIN) // English: Only users with ADMIN role can create teams
+  async create(@Body() dto: CreateTeamDto, @GetCurrentUserId() userId: number) {
     return this.teamsService.create(dto, userId);
-  }
-
-  @Get()
-  @ApiOperation({ summary: 'Get all teams for the current user' })
-  async findAll(@Req() req: Request) {
-    const user = req.user as any;
-    const userId = user?.userId;
-    return this.teamsService.findAllMyTeams(userId);
-  }
-
-  @Post(':id/invite')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Invite a member to the team' })
-  async invite(
-    @Param('id', ParseIntPipe) teamId: number,
-    @Body() dto: InviteMemberDto,
-    @Req() req: Request,
-  ) {
-    const user = req.user as any;
-    const userId = user?.userId;
-    return this.teamsService.inviteMember(teamId, userId, dto);
-  }
-
-  @Post('accept/:token')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Accept an invitation to join a team' })
-  async accept(@Param('token') token: string, @Req() req: Request) {
-    const user = req.user as any;
-    const userId = user?.userId;
-    return this.teamsService.acceptInvitation(token, userId);
   }
 }

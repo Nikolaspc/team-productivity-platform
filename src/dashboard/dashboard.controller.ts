@@ -1,6 +1,6 @@
 // src/dashboard/dashboard.controller.ts
 import { Controller, Get, Param, ParseIntPipe, Req } from '@nestjs/common';
-import { DashboardService } from './dashboard.service.js';
+import { DashboardService } from './dashboard.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 

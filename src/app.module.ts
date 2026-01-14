@@ -2,39 +2,45 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { PrismaModule } from './prisma/prisma.module.js';
-import { AuthModule } from './auth/auth.module.js';
-import { TeamsModule } from './teams/teams.module.js';
-import { ProjectsModule } from './projects/projects.module.js';
-import { TasksModule } from './tasks/tasks.module.js';
-import { DashboardModule } from './dashboard/dashboard.module.js';
-import { NotificationsModule } from './notifications/notifications.module.js';
-import { StorageModule } from './storage/storage.module.js'; // English: Added for Cloud Storage
-import { AtGuard } from './auth/guards/at.guard.js';
+
+// Infrastructure & Base Modules
+import { AuthModule } from './auth/auth.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { StorageModule } from './storage/storage.module';
+
+// Business Logic Modules
+import { TeamsModule } from './teams/teams.module';
+import { ProjectsModule } from './projects/projects.module';
+import { TasksModule } from './tasks/tasks.module';
+
+// Security & Config
+import { AtGuard } from './auth/guards/at.guard';
+import { RolesGuard } from './common/guards/roles.guard';
+import { envValidationSchema } from './config/env.validation';
 
 @Module({
   imports: [
-    // English: Global configuration for environment variables (.env)
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      validationSchema: envValidationSchema,
     }),
-
-    // English: Core and Feature Modules
     PrismaModule,
     AuthModule,
+    NotificationsModule,
+    StorageModule,
     TeamsModule,
     ProjectsModule,
     TasksModule,
-    DashboardModule,
-    NotificationsModule,
-    StorageModule, // English: Essential to make StorageService available
   ],
   providers: [
-    // English: Registering AtGuard as a global guard using APP_GUARD token.
     {
       provide: APP_GUARD,
-      useClass: AtGuard,
+      useClass: AtGuard, // English: Checks JWT (ignores @Public routes)
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard, // English: Checks Roles (Admin/User)
     },
   ],
 })

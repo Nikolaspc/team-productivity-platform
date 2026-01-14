@@ -5,10 +5,10 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateTaskDto } from './dto/create-task.dto.js';
-import { NotificationsGateway } from '../notifications/notifications.gateway.js';
-import { StorageService } from '../storage/storage.service.js'; // English: Import required for cleanup
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateTaskDto } from './dto/create-task.dto';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { StorageService } from '../storage/storage.service'; // English: Import required for cleanup
 
 @Injectable()
 export class TasksService {

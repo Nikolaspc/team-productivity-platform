@@ -24,9 +24,9 @@ import {
   ApiBody,
 } from '@nestjs/swagger'; // English: Fixes ApiTags, ApiBearerAuth, ApiOperation errors
 
-import { TasksService } from './tasks.service.js'; // English: Fixes TasksService error
-import { StorageService } from '../storage/storage.service.js'; // English: Fixes StorageService error
-import { CreateTaskDto } from './dto/create-task.dto.js';
+import { TasksService } from './tasks.service'; // English: Fixes TasksService error
+import { StorageService } from '../storage/storage.service'; // English: Fixes StorageService error
+import { CreateTaskDto } from './dto/create-task.dto';
 import type { Request } from 'express';
 
 @ApiTags('tasks')

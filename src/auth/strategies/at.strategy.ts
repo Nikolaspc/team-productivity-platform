@@ -1,30 +1,23 @@
 // src/auth/strategies/at.strategy.ts
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import type { Request } from 'express'; // Professional tip: Use 'import type' for Express types
 
 @Injectable()
 export class AtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor() {
+  constructor(config: ConfigService) {
     super({
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Request) => {
-          return req?.cookies?.['access_token'] || null;
-        },
-      ]),
+      // English: Extract token from Bearer header
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      // Fix for TS2345: Provide a fallback to ensure it's always a string
-      secretOrKey: process.env.AT_SECRET || 'dev_secret_key_123',
+      // English: This MUST match the .env key
+      secretOrKey: config.get<string>('AT_SECRET'),
     });
   }
 
   async validate(payload: any) {
-    // English: The returned object will be available in req.user
-    return {
-      userId: payload.sub,
-      email: payload.email,
-      role: payload.role,
-    };
+    // English: Payload contains: sub (id), email, and role
+    return payload;
   }
 }

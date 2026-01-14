@@ -1,8 +1,8 @@
 // src/dashboard/dashboard.module.ts
 import { Module } from '@nestjs/common';
-import { DashboardService } from './dashboard.service.js';
-import { DashboardController } from './dashboard.controller.js';
-import { PrismaModule } from '../prisma/prisma.module.js';
+import { DashboardService } from './dashboard.service';
+import { DashboardController } from './dashboard.controller';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
