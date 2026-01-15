@@ -16,7 +16,6 @@ enum Role {
   ADMIN
 }
 
-// English: Specific roles within a team for granular permissions
 enum TeamRole {
   OWNER
   MEMBER
@@ -54,7 +53,7 @@ model User {
   
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
-  deletedAt       DateTime?    
+  deletedAt       DateTime?    // Audit: Soft Delete field
 }
 
 model Team {
@@ -66,12 +65,12 @@ model Team {
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  deletedAt   DateTime?
+  deletedAt   DateTime?    // Audit: Soft Delete field
 }
 
 model TeamMember {
   id        Int      @id @default(autoincrement())
-  role      TeamRole @default(MEMBER) // English: Correct Enum usage
+  role      TeamRole @default(MEMBER)
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   teamId    Int
@@ -93,7 +92,7 @@ model Project {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  deletedAt   DateTime? // Audit: Soft Delete field
 }
 
 model Task {
@@ -113,7 +112,7 @@ model Task {
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  deletedAt   DateTime?
+  deletedAt   DateTime?    // Audit: Soft Delete field
 }
 
 model Attachment {

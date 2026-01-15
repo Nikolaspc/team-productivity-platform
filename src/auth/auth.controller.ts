@@ -5,14 +5,14 @@ import {
   HttpStatus,
   Post,
   UseGuards,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { AtGuard } from './guards/at.guard';
 import { RtGuard } from './guards/rt.guard';
-// English: Updated imports to match the current decorators in index.ts
-import { GetCurrentUserId, Public } from '../common/decorators';
-import { GetCurrentUser } from '../common/decorators/get-current-user.decorator'; // English: Keep this only if you still have the file
+import { GetCurrentUserId, Public, GetCurrentUser } from '../common/decorators';
 
 @Controller('auth')
 export class AuthController {
@@ -21,22 +21,24 @@ export class AuthController {
   @Public()
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
-  signup(@Body() dto: RegisterDto) {
-    return this.authService.signupLocal(dto);
+  signup(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+    return this.authService.signupLocal(dto, res);
   }
 
   @Public()
   @Post('signin')
   @HttpCode(HttpStatus.OK)
-  signin(@Body() dto: LoginDto) {
-    return this.authService.signinLocal(dto);
+  signin(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    return this.authService.signinLocal(dto, res);
   }
 
   @Post('logout')
-  @UseGuards(AtGuard)
   @HttpCode(HttpStatus.OK)
-  logout(@GetCurrentUserId() userId: number) {
-    return this.authService.logout(userId);
+  logout(
+    @GetCurrentUserId() userId: number,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.logout(userId, res);
   }
 
   @Public()
@@ -45,9 +47,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   refreshTokens(
     @GetCurrentUserId() userId: number,
-    // English: We use GetCurrentUser specifically for the refresh token string
     @GetCurrentUser('refreshToken') refreshToken: string,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.refreshTokens(userId, refreshToken);
+    return this.authService.refreshTokens(userId, refreshToken, res);
   }
 }
