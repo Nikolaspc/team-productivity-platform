@@ -1,23 +1,27 @@
-// src/auth/strategies/at.strategy.ts
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Role } from '@prisma/client';
+
+// English: Updated payload to include the user's role
+type JwtPayload = {
+  sub: number;
+  email: string;
+  role: Role;
+};
 
 @Injectable()
 export class AtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(config: ConfigService) {
     super({
-      // English: Extract token from Bearer header
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      // English: This MUST match the .env key
-      secretOrKey: config.get<string>('AT_SECRET'),
+      secretOrKey: config.getOrThrow<string>('AT_SECRET'),
     });
   }
 
-  async validate(payload: any) {
-    // English: Payload contains: sub (id), email, and role
+  validate(payload: JwtPayload) {
+    // English: Whatever is returned here is attached to request.user
     return payload;
   }
 }

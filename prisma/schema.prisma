@@ -16,6 +16,13 @@ enum Role {
   ADMIN
 }
 
+// English: Specific roles within a team for granular permissions
+enum TeamRole {
+  OWNER
+  MEMBER
+  VIEWER
+}
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
@@ -38,7 +45,6 @@ model User {
   name             String?
   role             Role      @default(USER)
   
-  // Hash for Refresh Token rotation (Phase 1)
   refreshTokenHash String?   @map("refresh_token_hash")
 
   // Relations
@@ -48,7 +54,7 @@ model User {
   
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
-  deletedAt       DateTime?    // Soft delete support
+  deletedAt       DateTime?    
 }
 
 model Team {
@@ -65,7 +71,7 @@ model Team {
 
 model TeamMember {
   id        Int      @id @default(autoincrement())
-  role      String   // Specific role within the team (e.g., 'Lead', 'Contributor')
+  role      TeamRole @default(MEMBER) // English: Correct Enum usage
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   teamId    Int
@@ -80,7 +86,6 @@ model TeamMember {
 model Project {
   id          Int      @id @default(autoincrement())
   name        String
-  // English: Added description field to match CreateProjectDto and ProjectsService
   description String?  
   teamId      Int
   team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -104,7 +109,6 @@ model Task {
   assigneeId  Int?
   assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
 
-  // Attachments for cloud storage integration
   attachments Attachment[]
 
   createdAt   DateTime     @default(now())
@@ -136,7 +140,7 @@ model Invitation {
   inviter    User             @relation("Inviter", fields: [inviterId], references: [id], onDelete: Cascade)
   
   teamId     Int
-  team       Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team      Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt

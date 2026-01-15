@@ -13,12 +13,10 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true,
-    "noImplicitThis": true,
-    "useUnknownInCatchVariables": true
-  },
-  "exclude": ["node_modules", "dist"]
+    "strict": true, // English: Enable all strict type-checking options
+    "noImplicitAny": true, // English: Raise error on expressions and declarations with an implied 'any' type
+    "strictNullChecks": true, // English: Ensure 'null' and 'undefined' are handled explicitly
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true
+  }
 }
