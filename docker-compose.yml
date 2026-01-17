@@ -6,9 +6,10 @@ services:
     container_name: tpp-db
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password123}
-      POSTGRES_DB: ${DB_NAME:-team_productivity}
+      # English: Matches your DATABASE_URL in .env
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: productivity_db
     ports:
       - '5432:5432'
     networks:
@@ -22,6 +23,11 @@ services:
     restart: always
     ports:
       - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
     networks:
       - tpp-network
 
@@ -30,8 +36,8 @@ services:
     container_name: tpp-maildev
     restart: always
     ports:
-      - '1080:1080' # Web UI for developers
-      - '1025:1025' # SMTP Server for BullMQ
+      - '1080:1080' # Web UI
+      - '1025:1025' # SMTP Server
     networks:
       - tpp-network
 

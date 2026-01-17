@@ -10,6 +10,7 @@ import { InvitationsService } from './invitations.service';
 import { AtGuard } from '../../auth/guards/at.guard';
 import { GetCurrentUserId } from '../../common/decorators';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { SendInvitationDto, AcceptInvitationDto } from './dto/invitation.dto';
 
 @ApiTags('invitations')
 @ApiBearerAuth()
@@ -23,23 +24,23 @@ export class InvitationsController {
   async invite(
     @Param('teamId', ParseIntPipe) teamId: number,
     @GetCurrentUserId() userId: number,
-    @Body('email') email: string,
-    @Body('role') role: string = 'MEMBER',
+    @Body() dto: SendInvitationDto,
   ) {
+    // English: Changed to createInvitation to match your Service method name
     return this.invitationsService.createInvitation(
       teamId,
       userId,
-      email,
-      role,
+      dto.email,
+      dto.role,
     );
   }
 
   @Post('accept')
   @ApiOperation({ summary: 'Accept a team invitation using a token' })
   async accept(
-    @Body('token') token: string,
+    @Body() dto: AcceptInvitationDto,
     @GetCurrentUserId() userId: number,
   ) {
-    return this.invitationsService.acceptInvitation(token, userId);
+    return this.invitationsService.acceptInvitation(dto.token, userId);
   }
 }

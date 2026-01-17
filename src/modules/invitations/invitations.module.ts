@@ -1,23 +1,19 @@
 import { Module } from '@nestjs/common';
 import { InvitationsService } from './invitations.service';
 import { InvitationsController } from './invitations.controller';
-import { BullModule } from '@nestjs/bullmq';
-import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../../prisma/prisma.module';
-import { AuthModule } from '../../auth/auth.module';
+import { MailModule } from '../mail/mail.module';
+import { JwtModule } from '@nestjs/jwt';
+import { NotificationsModule } from '../notifications/notifications.module'; // English: Added missing module
 
 @Module({
   imports: [
     PrismaModule,
-    AuthModule,
-    // English: Register the specific queue for this module
-    BullModule.registerQueue({
-      name: 'mail-queue',
-    }),
-    // English: Needed to sign and verify invitation tokens
+    MailModule,
+    NotificationsModule, // English: Required for NotificationsGateway in InvitationsService
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'fallback_secret',
-      signOptions: { expiresIn: '24h' },
+      signOptions: { expiresIn: '7d' },
     }),
   ],
   controllers: [InvitationsController],

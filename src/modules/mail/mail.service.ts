@@ -1,19 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
+// En src/modules/mail/mail.service.ts
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class MailService {
-  private readonly logger = new Logger(MailService.name);
+  // constructor(@InjectQueue('mail') private mailQueue: Queue) {} // English: Comment this out
 
-  async sendInvitationEmail(to: string, teamName: string, token: string) {
-    // English: In production, use Nodemailer, SendGrid, or Resend here.
-    const invitationUrl = `https://tuapp.com/accept-invitation?token=${token}`;
-
-    this.logger.log(
-      `📧 Sending invitation email to ${to} for team ${teamName}`,
+  async sendInvitationEmail(email: string, teamName: string, token: string) {
+    // English: Instead of adding to BullMQ queue, we just log it for now
+    console.log(
+      `[SIMULATED MAIL] Sending invitation to ${email} for team ${teamName}`,
     );
-    this.logger.debug(`Invitation Link: ${invitationUrl}`);
-
-    // English: Simulate email sending delay
-    return { success: true, messageId: 'fake-id-123' };
+    console.log(`[SIMULATED MAIL] Token: ${token}`);
+    return true;
   }
 }

@@ -1,55 +1,59 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service'; // Path corrected
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 import { TaskStatus } from '@prisma/client';
 
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
-  async getTeamStats(userId: number, teamId: number) {
-    // English: Verify team membership
-    const membership = await this.prisma.teamMember.findUnique({
-      where: { userId_teamId: { userId, teamId } },
+  async getTeamStats(teamId: number) {
+    // English: Verify if team exists
+    const team = await this.prisma.team.findUnique({
+      where: { id: teamId },
     });
 
-    if (!membership) {
-      throw new ForbiddenException('You do not have access to this team stats');
+    if (!team) {
+      throw new NotFoundException(`Team with ID ${teamId} not found`);
     }
 
+    // English: Fetch projects with their tasks
     const projects = await this.prisma.project.findMany({
-      where: { teamId, deletedAt: null },
+      where: { teamId },
       include: {
-        tasks: {
-          where: { deletedAt: null },
-          select: { status: true, dueDate: true },
-        },
-        _count: {
-          select: { tasks: { where: { deletedAt: null } } },
-        },
+        tasks: true,
       },
     });
 
-    const now = new Date();
-
-    return projects.map((project) => {
-      const tasks = project.tasks;
-      const completedTasks = tasks.filter(
+    const projectStats = projects.map((project) => {
+      const totalTasks = project.tasks.length;
+      const completedTasks = project.tasks.filter(
         (t) => t.status === TaskStatus.DONE,
       ).length;
-      const totalTasks = project._count.tasks;
+
+      // English: Calculate progress safely to avoid Division by Zero
+      const progress =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      // English: Count overdue tasks (Tasks not DONE and date is past)
+      const now = new Date();
+      const overdueTasks = project.tasks.filter(
+        (t) => t.status !== TaskStatus.DONE && t.dueDate && t.dueDate < now,
+      ).length;
 
       return {
-        projectId: project.id,
-        projectName: project.name,
+        id: project.id,
+        name: project.name,
+        progress,
         totalTasks,
         completedTasks,
-        pendingTasks: totalTasks - completedTasks,
-        overdueTasks: tasks.filter(
-          (t) => t.status !== TaskStatus.DONE && t.dueDate && t.dueDate < now,
-        ).length,
-        progress:
-          totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+        overdueTasks,
       };
     });
+
+    return {
+      teamName: team.name,
+      totalProjects: projects.length,
+      projects: projectStats,
+    };
   }
 }
