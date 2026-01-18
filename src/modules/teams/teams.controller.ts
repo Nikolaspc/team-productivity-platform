@@ -1,47 +1,34 @@
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Param,
-  ParseIntPipe,
-  UseGuards,
-} from '@nestjs/common';
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { TeamsService } from './teams.service';
 import { CreateTeamDto } from './dto/create-team.dto';
-import { RolesGuard } from '../../common/guards/roles.guard'; // Path corrected
-import { Roles } from '../../common/decorators/roles.decorator'; // Path corrected
+import { GetCurrentUserId } from '../../common/decorators/get-current-user-id.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
-import { GetCurrentUserId } from '../../common/decorators'; // Path corrected
-import { AtGuard } from '../../auth/guards/at.guard'; // Path corrected
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('teams')
+@ApiTags('Teams')
 @ApiBearerAuth('access-token')
-@UseGuards(AtGuard, RolesGuard)
 @Controller('teams')
+@UseGuards(RolesGuard) // English: Active for all endpoints in this controller
 export class TeamsController {
-  constructor(private teamsService: TeamsService) {}
+  constructor(private readonly teamsService: TeamsService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.USER)
+  @Roles(Role.USER, Role.ADMIN) // English: Any registered user can create a team
   @ApiOperation({ summary: 'Create a new team' })
-  async create(@Body() dto: CreateTeamDto, @GetCurrentUserId() userId: number) {
-    return this.teamsService.create(dto, userId);
+  create(@GetCurrentUserId() userId: number, @Body() dto: CreateTeamDto) {
+    return this.teamsService.create(userId, dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'List my teams' })
-  async findAll(@GetCurrentUserId() userId: number) {
-    return this.teamsService.findAllMyTeams(userId);
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get team details' })
-  async findOne(
-    @Param('id', ParseIntPipe) teamId: number,
-    @GetCurrentUserId() userId: number,
-  ) {
-    return this.teamsService.findOne(teamId, userId);
+  @ApiOperation({ summary: 'List user teams' })
+  findAll(@GetCurrentUserId() userId: number) {
+    return this.teamsService.findAll(userId);
   }
 }

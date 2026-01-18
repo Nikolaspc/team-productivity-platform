@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "CommonJS",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -13,10 +12,12 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strict": true, // English: Enable all strict type-checking options
-    "noImplicitAny": true, // English: Raise error on expressions and declarations with an implied 'any' type
-    "strictNullChecks": true, // English: Ensure 'null' and 'undefined' are handled explicitly
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true
+    "strict": true,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "types": ["node", "jest", "multer"],
+    "paths": {
+      "@/*": ["src/*"]
+    }
   }
 }

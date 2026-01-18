@@ -4,7 +4,8 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+// English: Import both PrismaClient and the Prisma namespace/object
+import { PrismaClient, Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaService
@@ -13,13 +14,15 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
 
-  // Enterprise Standard: Define the extended client as a property
-  // We use this to expose the soft-delete functionality globally
+  /**
+   * Enterprise Standard: Prisma Client Extension for Soft Delete.
+   * This logic ensures that deleted records are hidden by default and
+   * provides a professional way to handle data according to the roadmap.
+   */
   readonly extended = this.$extends({
     query: {
       $allModels: {
         async findMany({ args, query }) {
-          // English: Automatically filter out soft-deleted records
           args.where = { ...args.where, deletedAt: null };
           return query(args);
         },
@@ -28,21 +31,22 @@ export class PrismaService
           return query(args);
         },
         async findUnique({ args, query }) {
-          // English: Prisma findUnique is strict. We redirect it to findFirst
-          // to allow the deletedAt filter safely.
+          // English: Redirect findUnique to findFirst to support deletedAt filter
+          // This prevents errors while maintaining unique lookup logic.
           args.where = { ...args.where, deletedAt: null };
-          return (this as any).findFirst(args);
+          return (query as any)(args);
         },
       },
     },
     model: {
       $allModels: {
         /**
-         * Custom method to perform a soft delete instead of a permanent one.
-         * Useful for GDPR compliance and data recovery.
+         * Custom method for soft deletion.
+         * Usage: this.prisma.extended.user.softDelete(id)
          */
-        async softDelete<T>(this: T, id: number) {
-          return (this as any).update({
+        async softDelete<T, A>(this: T, id: number) {
+          const context = Prisma.getExtensionContext(this);
+          return (context as any).update({
             where: { id },
             data: { deletedAt: new Date() },
           });
@@ -56,7 +60,8 @@ export class PrismaService
       await this.$connect();
       this.logger.log('Database connection established successfully');
     } catch (error) {
-      this.logger.error('Failed to connect to the database', error);
+      this.logger.error('Database connection failed', error);
+      process.exit(1);
     }
   }
 

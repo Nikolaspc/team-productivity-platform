@@ -5,53 +5,59 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Role } from '@prisma/client';
+import { Role, TeamRole } from '@prisma/client'; // Import both
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private prisma: PrismaService, // English: Needed to check team membership
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    // 1. Verificar si la ruta es pública
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // 1. Check if route is public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
+    if (isPublic) return true;
 
-    // English: If the route is @Public(), we don't care about roles.
-    if (isPublic) {
-      return true;
-    }
-
-    // 2. Obtener roles requeridos
+    // 2. Get required roles from decorator
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    // English: If no roles are required by the @Roles decorator, let the user pass.
-    if (!requiredRoles) {
-      return true;
-    }
-
-    // 3. Obtener el usuario de la petición
     const request = context.switchToHttp().getRequest();
     const user = request.user;
+    const teamId = parseInt(request.params.teamId);
 
-    // English: Safety check if user is not present (this shouldn't happen with AtGuard active)
-    if (!user || !user.role) {
-      throw new ForbiddenException('User session not found or role missing');
+    // 3. Global Admin Bypass (Enterprise Standard)
+    if (user?.role === Role.ADMIN) return true;
+
+    // 4. Validate Global Roles (if @Roles is present)
+    if (requiredRoles && !requiredRoles.some((role) => user.role === role)) {
+      throw new ForbiddenException('Missing required global role');
     }
 
-    // 4. Validar el rol
-    const hasRole = requiredRoles.some((role) => user.role === role);
+    // 5. Team Context Validation (Logic for Team Roles)
+    // English: If the URL contains a teamId, we must verify membership
+    if (teamId) {
+      const membership = await this.prisma.teamMember.findUnique({
+        where: {
+          userId_teamId: { userId: user.sub, teamId: teamId },
+        },
+      });
 
-    if (!hasRole) {
-      throw new ForbiddenException(
-        'You do not have permission to perform this action',
-      );
+      if (!membership) {
+        throw new ForbiddenException('You are not a member of this team');
+      }
+
+      // English: Attach membership to request for easy access in controllers
+      request.user.teamRole = membership.role;
     }
 
     return true;

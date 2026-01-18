@@ -4,7 +4,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service'; // Path corrected
+import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { Role, TeamRole } from '@prisma/client';
 
@@ -14,75 +14,54 @@ export class ProjectsService {
 
   constructor(private prisma: PrismaService) {}
 
-  async create(
-    userId: number,
-    userRole: Role,
-    teamId: number,
-    dto: CreateProjectDto,
-  ) {
-    const team = await this.prisma.team.findUnique({ where: { id: teamId } });
-    if (!team) throw new NotFoundException(`Team with ID ${teamId} not found`);
-
-    const membership = await this.prisma.teamMember.findUnique({
-      where: { userId_teamId: { userId, teamId } },
+  async create(teamId: number, dto: CreateProjectDto) {
+    // English: The RolesGuard already verified membership.
+    // We only check if the team exists to be safe.
+    const team = await this.prisma.extended.team.findUnique({
+      where: { id: teamId },
     });
 
-    const isGlobalAdmin = userRole === Role.ADMIN;
-    const isTeamOwner = membership?.role === TeamRole.OWNER;
+    if (!team) throw new NotFoundException(`Team with ID ${teamId} not found`);
 
-    if (!isGlobalAdmin && !isTeamOwner) {
-      throw new ForbiddenException(
-        'Only the Team Owner or a Global Admin can create projects',
-      );
-    }
-
-    return this.prisma.project.create({
+    return this.prisma.extended.project.create({
       data: {
-        name: dto.name,
-        description: dto.description,
+        ...dto,
         teamId: teamId,
       },
     });
   }
 
-  async findAllByTeam(userId: number, userRole: Role, teamId: number) {
-    if (userRole !== Role.ADMIN) {
-      const membership = await this.prisma.teamMember.findUnique({
-        where: { userId_teamId: { userId, teamId } },
-      });
-      if (!membership)
-        throw new ForbiddenException('Access denied to this team');
-    }
-
-    return this.prisma.project.findMany({
-      where: { teamId, deletedAt: null },
-      include: { _count: { select: { tasks: true } } },
+  async findAllByTeam(teamId: number) {
+    // English: Guard already checked access. Just return projects.
+    return this.prisma.extended.project.findMany({
+      where: { teamId },
+      include: {
+        _count: { select: { tasks: true } },
+      },
     });
   }
 
   async remove(
-    userId: number,
-    userRole: Role,
     teamId: number,
     projectId: number,
+    userRole: Role,
+    teamRole?: TeamRole,
   ) {
-    const project = await this.prisma.project.findFirst({
-      where: { id: projectId, teamId, deletedAt: null },
+    const project = await this.prisma.extended.project.findFirst({
+      where: { id: projectId, teamId },
     });
 
     if (!project) throw new NotFoundException('Project not found in this team');
 
-    const membership = await this.prisma.teamMember.findUnique({
-      where: { userId_teamId: { userId, teamId } },
-    });
+    // English: Hierarchy check: Only Global Admin or Team Owner can delete
+    const canDelete = userRole === Role.ADMIN || teamRole === TeamRole.OWNER;
 
-    if (userRole !== Role.ADMIN && membership?.role !== TeamRole.OWNER) {
-      throw new ForbiddenException('Only Owners or Admins can delete projects');
+    if (!canDelete) {
+      throw new ForbiddenException(
+        'Only Team Owners or Admins can delete projects',
+      );
     }
 
-    return this.prisma.project.update({
-      where: { id: projectId },
-      data: { deletedAt: new Date() },
-    });
+    return (this.prisma.extended.project as any).softDelete(projectId);
   }
 }

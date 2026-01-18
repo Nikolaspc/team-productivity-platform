@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  ConflictException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -16,13 +21,19 @@ export class AuthService {
     private config: ConfigService,
   ) {}
 
-  /**
-   * Enterprise Standard: Local registration with automated hash generation
-   */
   async signupLocal(dto: RegisterDto, res: Response) {
+    // English: Using the extended client to respect soft-delete filters
+    const existingUser = await this.prisma.extended.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
     const hash = await argon2.hash(dto.password);
 
-    const newUser = await this.prisma.user.create({
+    const newUser = await this.prisma.extended.user.create({
       data: {
         email: dto.email,
         password: hash,
@@ -40,11 +51,8 @@ export class AuthService {
     return this.finalizeSession(res, tokens);
   }
 
-  /**
-   * Enterprise Standard: Authentication with specialized Forbidden exceptions
-   */
   async signinLocal(dto: LoginDto, res: Response) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.extended.user.findUnique({
       where: { email: dto.email },
     });
 
@@ -61,11 +69,8 @@ export class AuthService {
     return this.finalizeSession(res, tokens);
   }
 
-  /**
-   * Revoke session by clearing the refresh token hash
-   */
   async logout(userId: number, res: Response) {
-    await this.prisma.user.updateMany({
+    await this.prisma.extended.user.updateMany({
       where: {
         id: userId,
         refreshTokenHash: { not: null },
@@ -73,16 +78,17 @@ export class AuthService {
       data: { refreshTokenHash: null },
     });
 
-    // Clear the cookie on logout
-    res.clearCookie('refresh_token');
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: this.config.get<string>('NODE_ENV') === 'production',
+      sameSite: 'strict',
+    });
+
     return { success: true };
   }
 
-  /**
-   * Rotation of refresh tokens to prevent replay attacks
-   */
   async refreshTokens(userId: number, rt: string, res: Response) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.extended.user.findUnique({
       where: { id: userId },
     });
 
@@ -99,20 +105,14 @@ export class AuthService {
     return this.finalizeSession(res, tokens);
   }
 
-  /**
-   * Internal logic to update the RT hash in the database
-   */
   async updateRtHash(userId: number, rt: string) {
     const hash = await argon2.hash(rt);
-    await this.prisma.user.update({
+    await this.prisma.extended.user.update({
       where: { id: userId },
       data: { refreshTokenHash: hash },
     });
   }
 
-  /**
-   * JWT Generation for AT (Short-lived) and RT (Long-lived)
-   */
   async getTokens(userId: number, email: string, role: string) {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(
@@ -131,16 +131,9 @@ export class AuthService {
       ),
     ]);
 
-    return {
-      access_token: at,
-      refresh_token: rt,
-    };
+    return { access_token: at, refresh_token: rt };
   }
 
-  /**
-   * Finalizes the session by setting secure cookies and returning the AT
-   * Decisions: HttpOnly, Secure (in production), and SameSite Strict.
-   */
   private finalizeSession(
     res: Response,
     tokens: { access_token: string; refresh_token: string },
@@ -151,11 +144,9 @@ export class AuthService {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return {
-      access_token: tokens.access_token,
-    };
+    return { access_token: tokens.access_token };
   }
 }

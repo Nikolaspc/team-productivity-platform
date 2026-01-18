@@ -1,8 +1,9 @@
 import {
   WebSocketGateway,
   WebSocketServer,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { UseGuards, Logger } from '@nestjs/common';
@@ -12,41 +13,32 @@ import { WsJwtGuard } from '../../auth/guards/ws-jwt.guard';
   cors: { origin: '*' },
   namespace: 'notifications',
 })
-export class NotificationsGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
-  @WebSocketServer()
-  server!: Server;
-
+export class NotificationsGateway {
+  @WebSocketServer() server!: Server;
   private readonly logger = new Logger(NotificationsGateway.name);
 
-  // English: Secure connection with JWT
-  @UseGuards(WsJwtGuard)
-  handleConnection(client: Socket) {
-    this.logger.log(`[WebSocket] Client connected: ${client.id}`);
+  // English: Client joins a specific room for their team
+  @SubscribeMessage('joinTeam')
+  handleJoinTeam(
+    @MessageBody('teamId') teamId: number,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = `team_${teamId}`;
+    client.join(room);
+    this.logger.log(`Client ${client.id} joined room: ${room}`);
   }
 
-  handleDisconnect(client: Socket) {
-    this.logger.log(`[WebSocket] Client disconnected: ${client.id}`);
-  }
-
-  // English: Logic for Team Invitations
   notifyInvitationAccepted(teamId: number, userName: string) {
-    if (this.server) {
-      this.server.emit(`team_${teamId}`, {
-        message: `${userName} has joined the team!`,
-        timestamp: new Date(),
-      });
-    }
+    this.server.to(`team_${teamId}`).emit('notification', {
+      type: 'INVITATION_ACCEPTED',
+      message: `${userName} has joined the team!`,
+    });
   }
 
-  // English: Logic for Task Updates
   notifyTaskUpdate(teamId: number, taskTitle: string, action: string) {
-    if (this.server) {
-      this.server.emit(`team_${teamId}`, {
-        message: `Task "${taskTitle}" was ${action}`,
-        timestamp: new Date(),
-      });
-    }
+    this.server.to(`team_${teamId}`).emit('notification', {
+      type: 'TASK_UPDATE',
+      message: `Task "${taskTitle}" was ${action}`,
+    });
   }
 }
