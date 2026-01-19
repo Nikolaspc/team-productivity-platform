@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   ConflictException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -22,7 +23,6 @@ export class AuthService {
   ) {}
 
   async signupLocal(dto: RegisterDto, res: Response) {
-    // English: Using the extended client to respect soft-delete filters
     const existingUser = await this.prisma.extended.user.findUnique({
       where: { email: dto.email },
     });
@@ -114,24 +114,31 @@ export class AuthService {
   }
 
   async getTokens(userId: number, email: string, role: string) {
-    const [at, rt] = await Promise.all([
-      this.jwtService.signAsync(
-        { sub: userId, email, role },
-        {
-          secret: this.config.get<string>('AT_SECRET'),
-          expiresIn: '15m',
-        },
-      ),
-      this.jwtService.signAsync(
-        { sub: userId, email, role },
-        {
-          secret: this.config.get<string>('RT_SECRET'),
-          expiresIn: '7d',
-        },
-      ),
-    ]);
+    try {
+      const [at, rt] = await Promise.all([
+        this.jwtService.signAsync(
+          { sub: userId, email, role },
+          {
+            secret: this.config.get<string>('AT_SECRET'),
+            expiresIn: '15m',
+          },
+        ),
+        this.jwtService.signAsync(
+          { sub: userId, email, role },
+          {
+            secret: this.config.get<string>('RT_SECRET'),
+            expiresIn: '7d',
+          },
+        ),
+      ]);
 
-    return { access_token: at, refresh_token: rt };
+      return { access_token: at, refresh_token: rt };
+    } catch (error) {
+      this.logger.error(
+        `Error generating tokens: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw new InternalServerErrorException('Error creating session');
+    }
   }
 
   private finalizeSession(

@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { StorageService } from '../../storage/storage.service';
+import { AttachmentsService } from './attachments.service';
 
 @Injectable()
 export class TasksService {
@@ -18,6 +19,7 @@ export class TasksService {
     private prisma: PrismaService,
     private notifications: NotificationsGateway,
     private storageService: StorageService,
+    private attachmentsService: AttachmentsService, // English: Injected to handle attachment logic
   ) {}
 
   async create(userId: number, dto: CreateTaskDto) {
@@ -66,29 +68,33 @@ export class TasksService {
     taskId: number,
     fileData: { filename: string; url: string; mimetype: string; size: number },
   ) {
+    // English: Ensure the task exists before calling attachment service
     const task = await this.prisma.extended.task.findUnique({
       where: { id: taskId },
     });
     if (!task) throw new NotFoundException('Task not found');
 
-    return this.prisma.extended.attachment.create({
-      data: { ...fileData, taskId },
-    });
+    return this.attachmentsService.create(taskId, fileData);
   }
 
   async removeAttachment(attachmentId: number) {
-    const attachment = await this.prisma.extended.attachment.findUnique({
-      where: { id: attachmentId },
-    });
-
-    if (!attachment) throw new NotFoundException('Attachment not found');
+    // English: Use delegated service to find the attachment
+    const attachment = await this.attachmentsService.findOne(attachmentId);
 
     try {
+      // 1. Delete from Cloud Storage (S3)
       await this.storageService.deleteFile(attachment.url);
-      return await this.prisma.extended.attachment.delete({
-        where: { id: attachmentId },
-      });
+
+      // 2. Delete from Database via AttachmentsService
+      return await this.attachmentsService.remove(attachmentId);
     } catch (error) {
+      // English: Fix for TS18046: 'error' is of type 'unknown'
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      this.logger.error(
+        `Error removing attachment ${attachmentId}: ${errorMessage}`,
+      );
       throw new InternalServerErrorException(
         'Failed to delete attachment from cloud',
       );

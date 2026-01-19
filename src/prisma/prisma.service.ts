@@ -4,7 +4,7 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-// English: Import both PrismaClient and the Prisma namespace/object
+// English: Import both PrismaClient and the Prisma namespace for extensions
 import { PrismaClient, Prisma } from '@prisma/client';
 
 @Injectable()
@@ -17,12 +17,13 @@ export class PrismaService
   /**
    * Enterprise Standard: Prisma Client Extension for Soft Delete.
    * This logic ensures that deleted records are hidden by default and
-   * provides a professional way to handle data according to the roadmap.
+   * provides a professional way to handle data.
    */
   readonly extended = this.$extends({
     query: {
       $allModels: {
         async findMany({ args, query }) {
+          // English: Automatic filter for soft-deleted records
           args.where = { ...args.where, deletedAt: null };
           return query(args);
         },
@@ -31,8 +32,8 @@ export class PrismaService
           return query(args);
         },
         async findUnique({ args, query }) {
-          // English: Redirect findUnique to findFirst to support deletedAt filter
-          // This prevents errors while maintaining unique lookup logic.
+          // English: Redirect findUnique to findFirst to support deletedAt filter.
+          // This ensures that even unique lookups respect the soft-delete policy.
           args.where = { ...args.where, deletedAt: null };
           return (query as any)(args);
         },
@@ -42,7 +43,7 @@ export class PrismaService
       $allModels: {
         /**
          * Custom method for soft deletion.
-         * Usage: this.prisma.extended.user.softDelete(id)
+         * Usage: this.prisma.extended.task.softDelete(id)
          */
         async softDelete<T, A>(this: T, id: number) {
           const context = Prisma.getExtensionContext(this);
@@ -61,6 +62,7 @@ export class PrismaService
       this.logger.log('Database connection established successfully');
     } catch (error) {
       this.logger.error('Database connection failed', error);
+      // English: Critical failure, stop the process if DB is unreachable
       process.exit(1);
     }
   }

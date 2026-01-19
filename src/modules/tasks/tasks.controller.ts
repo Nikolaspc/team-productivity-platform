@@ -40,6 +40,7 @@ export class TasksController {
   @Post()
   @ApiOperation({ summary: 'Create a new task' })
   async create(@GetCurrentUserId() userId: number, @Body() dto: CreateTaskDto) {
+    // English: The service validates if the userId has access to the project's team
     return this.tasksService.create(userId, dto);
   }
 
@@ -53,6 +54,7 @@ export class TasksController {
   }
 
   @Post(':id/upload')
+  @ApiOperation({ summary: 'Upload an attachment to a task' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -66,13 +68,14 @@ export class TasksController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }), // 5MB
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }), // 5MB limit
           new FileTypeValidator({ fileType: /(jpg|jpeg|png|pdf|zip)$/ }),
         ],
       }),
     )
     file: Express.Multer.File,
   ) {
+    // English: First upload to cloud storage, then save record in DB
     const fileUrl = await this.storageService.uploadFile(file);
     return this.tasksService.addAttachment(taskId, {
       filename: file.originalname,
@@ -80,5 +83,14 @@ export class TasksController {
       mimetype: file.mimetype,
       size: file.size,
     });
+  }
+
+  @Delete('attachments/:attachmentId')
+  @ApiOperation({ summary: 'Remove an attachment from a task' })
+  async removeAttachment(
+    @Param('attachmentId', ParseIntPipe) attachmentId: number,
+  ) {
+    // English: Deletes from both storage provider and database
+    return this.tasksService.removeAttachment(attachmentId);
   }
 }

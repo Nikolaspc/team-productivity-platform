@@ -1,4 +1,3 @@
-// src/storage/storage.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import {
   S3Client,
@@ -13,7 +12,7 @@ export class StorageService {
   private readonly logger = new Logger(StorageService.name);
 
   constructor(private config: ConfigService) {
-    // English: Initialize S3 Client with credentials from environment
+    // Initialize S3 Client with credentials from environment
     this.s3Client = new S3Client({
       region: this.config.get<string>('STORAGE_REGION')!,
       endpoint: this.config.get<string>('STORAGE_ENDPOINT')!,
@@ -42,7 +41,7 @@ export class StorageService {
   }
 
   /**
-   * English: Deletes a file from Supabase/S3 bucket with improved key extraction
+   * Deletes a file from Cloud Storage bucket with key extraction
    */
   async deleteFile(fileUrl: string): Promise<void> {
     const bucket = this.config.get<string>('STORAGE_BUCKET')!;
@@ -66,8 +65,9 @@ export class StorageService {
 
       await this.s3Client.send(command);
     } catch (error: any) {
-      // English: Explicitly handle 'unknown' error type for TS18046
-      this.logger.error(`Cloud Delete Error: ${error.message}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Cloud Delete Error: ${errorMessage}`);
       throw error;
     }
   }
