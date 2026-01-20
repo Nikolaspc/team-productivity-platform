@@ -65,11 +65,24 @@ describe('InvitationsService', () => {
 
   describe('createInvitation', () => {
     it('should create an invitation successfully', async () => {
-      (prisma.team.findUnique as jest.Mock).mockResolvedValue({
+      const mockTeam = {
         id: mockTeamId,
         name: 'Team Jest',
-      });
+        members: [
+          {
+            userId: mockInviterId,
+            role: TeamRole.OWNER,
+            teamId: mockTeamId,
+          },
+        ],
+      };
+
+      (prisma.team.findUnique as jest.Mock).mockResolvedValue(mockTeam);
       (prisma.teamMember.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: mockInviterId,
+        email: 'owner@test.com',
+      });
       (prisma.invitation.create as jest.Mock).mockResolvedValue({ id: 500 });
 
       const result = await service.createInvitation(
@@ -79,21 +92,78 @@ describe('InvitationsService', () => {
       );
 
       expect(result.message).toBe('Invitation sent successfully');
+      expect(result.invitationId).toBe(500);
       expect(prisma.invitation.create).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if team does not exist', async () => {
       (prisma.team.findUnique as jest.Mock).mockResolvedValue(null);
+
       await expect(
         service.createInvitation(999, mockInviterId, mockEmail),
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw BadRequestException if user is already a member', async () => {
-      (prisma.team.findUnique as jest.Mock).mockResolvedValue({
+    it('should throw ForbiddenException if inviter is not team owner', async () => {
+      const mockTeam = {
         id: mockTeamId,
-      });
+        name: 'Team Jest',
+        members: [
+          {
+            userId: mockInviterId,
+            role: TeamRole.MEMBER,
+            teamId: mockTeamId,
+          },
+        ],
+      };
+
+      (prisma.team.findUnique as jest.Mock).mockResolvedValue(mockTeam);
+
+      await expect(
+        service.createInvitation(mockTeamId, mockInviterId, mockEmail),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw BadRequestException if user is already a member', async () => {
+      const mockTeam = {
+        id: mockTeamId,
+        name: 'Team Jest',
+        members: [
+          {
+            userId: mockInviterId,
+            role: TeamRole.OWNER,
+            teamId: mockTeamId,
+          },
+        ],
+      };
+
+      (prisma.team.findUnique as jest.Mock).mockResolvedValue(mockTeam);
       (prisma.teamMember.findFirst as jest.Mock).mockResolvedValue({ id: 1 });
+
+      await expect(
+        service.createInvitation(mockTeamId, mockInviterId, mockEmail),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if user tries to invite themselves', async () => {
+      const mockTeam = {
+        id: mockTeamId,
+        name: 'Team Jest',
+        members: [
+          {
+            userId: mockInviterId,
+            role: TeamRole.OWNER,
+            teamId: mockTeamId,
+          },
+        ],
+      };
+
+      (prisma.team.findUnique as jest.Mock).mockResolvedValue(mockTeam);
+      (prisma.teamMember.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: mockInviterId,
+        email: mockEmail,
+      });
 
       await expect(
         service.createInvitation(mockTeamId, mockInviterId, mockEmail),
