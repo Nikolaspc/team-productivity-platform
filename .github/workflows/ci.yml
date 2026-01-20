@@ -33,35 +33,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: bff-nestjs/package-lock.json
 
       - name: Install Project Dependencies
-        working-directory: bff-nestjs
+        working-directory: ./bff-nestjs
         run: npm install
 
       - name: Code Quality Audit (Lint)
-        working-directory: bff-nestjs
+        working-directory: ./bff-nestjs
         run: npm run lint
 
       - name: Initialize Database Client (Prisma)
-        working-directory: bff-nestjs
+        working-directory: ./bff-nestjs
         run: npx prisma generate
 
       - name: Execute Suite of Unit Tests
-        working-directory: bff-nestjs
+        working-directory: ./bff-nestjs
         run: npm run test
 
       - name: Execute End-to-End Tests
-        working-directory: bff-nestjs
+        working-directory: ./bff-nestjs
         env:
           DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
-          # Using specific secret names from your GitHub settings
           AT_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
           RT_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
           NODE_ENV: test
         run: npm run test:e2e
 
       - name: Final Build Production Artifact
-        working-directory: bff-nestjs
+        working-directory: ./bff-nestjs
         run: npm run build
