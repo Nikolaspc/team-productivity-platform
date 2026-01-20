@@ -29,7 +29,8 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -44,7 +45,7 @@ jobs:
       - name: Run Lint
         run: npm run lint
 
-      - name: Run Prisma Generate
+      - name: Generate Prisma Client
         run: npx prisma generate
 
       - name: Run Unit Tests
@@ -53,7 +54,7 @@ jobs:
       - name: Run E2E Tests
         env:
           DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
-          # Secrets synced with your GitHub repository settings
+          # Ensure these match your GitHub Secrets naming
           AT_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
           RT_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
           NODE_ENV: test
