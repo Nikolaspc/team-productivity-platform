@@ -51,6 +51,15 @@ describe('Invitations (e2e)', () => {
 
     teamId = teamRes.body.id;
 
+    // Verify owner was created with OWNER role
+    const ownerMember = await prisma.teamMember.findFirst({
+      where: {
+        teamId,
+        user: { email: ownerUser.email },
+      },
+    });
+    console.log('Owner member after team creation:', ownerMember);
+
     // 2. Create Guest User
     await request(app.getHttpServer()).post('/auth/signup').send(guestUser);
 
