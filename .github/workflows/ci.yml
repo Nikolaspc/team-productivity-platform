@@ -1,5 +1,4 @@
 name: Enterprise CI Pipeline
-
 on:
   push:
     branches: [main, develop]
@@ -9,7 +8,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
     services:
       postgres:
         image: postgres:15
@@ -35,24 +33,30 @@ jobs:
           node-version: '20'
 
       - name: Install Project Dependencies
-        run: cd bff-nestjs && npm install
+        working-directory: ./bff-nestjs
+        run: npm install
 
       - name: Code Quality Audit (Lint)
-        run: cd bff-nestjs && npm run lint
+        working-directory: ./bff-nestjs
+        run: npm run lint
 
       - name: Initialize Database Client (Prisma)
-        run: cd bff-nestjs && npx prisma generate
+        working-directory: ./bff-nestjs
+        run: npx prisma generate
 
       - name: Execute Suite of Unit Tests
-        run: cd bff-nestjs && npm run test
+        working-directory: ./bff-nestjs
+        run: npm run test
 
       - name: Execute End-to-End Tests
+        working-directory: ./bff-nestjs
         env:
           DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
           AT_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
           RT_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
           NODE_ENV: test
-        run: cd bff-nestjs && npm run test:e2e
+        run: npm run test:e2e
 
       - name: Final Build Production Artifact
-        run: cd bff-nestjs && npm run build
+        working-directory: ./bff-nestjs
+        run: npm run build
