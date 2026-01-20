@@ -17,6 +17,7 @@ describe('Invitations (e2e)', () => {
     password: 'password123',
     name: 'Owner',
   };
+
   const guestUser = {
     email: 'guest@test.com',
     password: 'password123',
@@ -27,29 +28,36 @@ describe('Invitations (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
+
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());
     await app.init();
+
     prisma = app.get<PrismaService>(PrismaService);
 
     // 1. Create Owner and Team
     await request(app.getHttpServer()).post('/auth/signup').send(ownerUser);
+
     const loginOwner = await request(app.getHttpServer())
       .post('/auth/signin')
       .send(ownerUser);
+
     ownerToken = loginOwner.body.access_token;
 
     const teamRes = await request(app.getHttpServer())
       .post('/teams')
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ name: 'E2E Team' });
+
     teamId = teamRes.body.id;
 
     // 2. Create Guest User
     await request(app.getHttpServer()).post('/auth/signup').send(guestUser);
+
     const loginGuest = await request(app.getHttpServer())
       .post('/auth/signin')
       .send(guestUser);
+
     guestToken = loginGuest.body.access_token;
   });
 
@@ -58,6 +66,7 @@ describe('Invitations (e2e)', () => {
       where: { email: { in: [ownerUser.email, guestUser.email] } },
     });
     await prisma.team.deleteMany({ where: { name: 'E2E Team' } });
+    await prisma.$disconnect();
     await app.close();
   });
 
@@ -68,9 +77,13 @@ describe('Invitations (e2e)', () => {
       .send({ email: guestUser.email, role: 'MEMBER' })
       .expect(201);
 
+    expect(res.body.message).toBeDefined();
+    expect(res.body.invitationId).toBeDefined();
+
     const inv = await prisma.invitation.findFirst({
       where: { email: guestUser.email },
     });
+
     invitationToken = inv!.token;
   });
 
@@ -92,8 +105,12 @@ describe('Invitations (e2e)', () => {
 
     // Verify membership
     const member = await prisma.teamMember.findFirst({
-      where: { teamId, user: { email: guestUser.email } },
+      where: {
+        teamId,
+        user: { email: guestUser.email },
+      },
     });
+
     expect(member).toBeDefined();
   });
 });

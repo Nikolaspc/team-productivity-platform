@@ -7,7 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { MailService } from '../mail/mail.service'; // English: Use MailService instead of Queue
+import { MailService } from '../mail/mail.service';
 import { TeamRole, InvitationStatus } from '@prisma/client';
 
 @Injectable()
@@ -16,35 +16,52 @@ export class InvitationsService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private notifications: NotificationsGateway,
-    private mailService: MailService, // English: Replaced mailQueue with mailService
+    private mailService: MailService,
   ) {}
 
   async createInvitation(
     teamId: number,
     inviterId: number,
     targetEmail: string,
-    role: TeamRole = TeamRole.MEMBER, // English: Use TeamRole enum
+    role: TeamRole = TeamRole.MEMBER,
   ) {
     // 1. Verificar existencia del equipo
-    const team = await this.prisma.team.findUnique({ where: { id: teamId } });
+    const team = await this.prisma.team.findUnique({
+      where: { id: teamId },
+      include: { members: true },
+    });
     if (!team) throw new NotFoundException('Team not found');
+
+    // 2. Verificar que el invitador es OWNER del equipo
+    const inviterMember = team.members.find((m) => m.userId === inviterId);
+    if (!inviterMember || inviterMember.role !== TeamRole.OWNER) {
+      throw new ForbiddenException('Only team owners can send invitations');
+    }
 
     const lowerEmail = targetEmail.toLowerCase();
 
-    // 2. Verificar si ya es miembro
+    // 3. Verificar si ya es miembro
     const existingMember = await this.prisma.teamMember.findFirst({
       where: { teamId, user: { email: lowerEmail } },
     });
     if (existingMember)
       throw new BadRequestException('User is already a member of this team');
 
-    // 3. Generar JWT para la invitación
+    // 4. Verificar que no se invita a sí mismo
+    const inviterUser = await this.prisma.user.findUnique({
+      where: { id: inviterId },
+    });
+    if (inviterUser?.email.toLowerCase() === lowerEmail) {
+      throw new BadRequestException('You cannot invite yourself');
+    }
+
+    // 5. Generar JWT para la invitación
     const invitationToken = this.jwtService.sign(
       { teamId, email: lowerEmail, role, inviterId },
-      { expiresIn: '7d' }, // English: Increased to 7 days
+      { expiresIn: '7d' },
     );
 
-    // 4. Guardar en DB
+    // 6. Guardar en DB
     const invitation = await this.prisma.invitation.create({
       data: {
         email: lowerEmail,
@@ -56,8 +73,7 @@ export class InvitationsService {
       },
     });
 
-    // 5. Enviar Correo (Simulado/Logueado en consola)
-    // English: Since Redis is down, we call the service directly
+    // 7. Enviar Correo
     await this.mailService.sendInvitationEmail(
       lowerEmail,
       team.name,
@@ -95,13 +111,14 @@ export class InvitationsService {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       if (!user) throw new NotFoundException('User not found');
 
+      // 4. Verificar que el email coincide
       if (user.email.toLowerCase() !== email.toLowerCase()) {
         throw new ForbiddenException('Email mismatch for this invitation');
       }
 
       const userName = user.name ?? 'New Member';
 
-      // 4. Transacción Atómica
+      // 5. Transacción Atómica
       await this.prisma.$transaction([
         this.prisma.teamMember.create({
           data: {
@@ -116,7 +133,7 @@ export class InvitationsService {
         }),
       ]);
 
-      // 5. Notificar via WebSockets (Gateway)
+      // 6. Notificar via WebSockets
       this.notifications.notifyInvitationAccepted(teamId, userName);
 
       return { message: 'Joined the team successfully' };
