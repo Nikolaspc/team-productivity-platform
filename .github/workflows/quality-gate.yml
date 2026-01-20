@@ -1,0 +1,108 @@
+# .github/workflows/quality-gate.yml
+name: Quality Gate (CI)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: Static Analysis & Security
+  # German Enterprise Standard: Fail fast on style or security issues
+  # ------------------------------------------------------------------
+  static-checks:
+    name: 🛡️ Static Analysis & Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Linting & Formatting
+        run: npm run lint
+        # Fails if code doesn't adhere to Prettier/ESLint rules
+
+      - name: Type Checking (Build Dry Run)
+        run: npm run build
+        # Fails if strict Typescript errors exist
+
+      - name: Security Audit
+        run: npm audit --audit-level=high
+        # Fails only on high/critical vulnerabilities (Enterprise requirement)
+
+  # ------------------------------------------------------------------
+  # JOB 2: Testing Strategy
+  # Includes isolated PostgreSQL service for reliable integration tests
+  # ------------------------------------------------------------------
+  tests:
+    name: 🧪 Unit & E2E Tests
+    needs: static-checks
+    runs-on: ubuntu-latest
+
+    # Service Containers: This solves your "No Local Docker" constraint.
+    # We spin up a real Postgres 14 just for the duration of this job.
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        # Health check to ensure DB is ready before tests start
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: 'postgresql://test_user:test_password@localhost:5432/test_db?schema=public'
+
+      - name: Run Database Migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: 'postgresql://test_user:test_password@localhost:5432/test_db?schema=public'
+
+      - name: Run Unit Tests
+        run: npm run test
+        env:
+          # Mocking Supabase/External services via ENV if needed in unit tests
+          JWT_SECRET: 'super-secret-testing-key'
+
+      - name: Run E2E Tests
+        run: npm run test:e2e
+        env:
+          DATABASE_URL: 'postgresql://test_user:test_password@localhost:5432/test_db?schema=public'
+          JWT_SECRET: 'super-secret-testing-key'
+          JWT_REFRESH_SECRET: 'super-secret-refresh-key'
+          # Mock Supabase credentials ensures we don't hit live production during CI
+          SUPABASE_URL: 'https://mock.supabase.co'
+          SUPABASE_KEY: 'mock-key'
+cd bff-nestjs
