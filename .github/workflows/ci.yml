@@ -49,6 +49,13 @@ jobs:
 
       - name: Execute Unit Tests
         working-directory: ./bff-nestjs
+        env:
+          NODE_ENV: test
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_PASS: ${{ secrets.MAIL_PASS }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
         run: npm run test -- --passWithNoTests
 
       - name: Setup Test Database
@@ -64,6 +71,11 @@ jobs:
           AT_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
           RT_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
           NODE_ENV: test
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_PASS: ${{ secrets.MAIL_PASS }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
         run: npm run test:e2e -- --passWithNoTests
 
       - name: Build Production Artifact
