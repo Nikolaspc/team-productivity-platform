@@ -10,13 +10,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-<<<<<<< HEAD
-    defaults:
-      run:
-        working-directory: bff-nestjs
-
-=======
->>>>>>> 9944cb2 (ci: implement enterprise github actions pipeline)
     services:
       postgres:
         image: postgres:15
@@ -38,23 +31,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-<<<<<<< HEAD
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: bff-nestjs/package-lock.json
-=======
-          node-version: "20"
-          cache: "npm"
->>>>>>> 9944cb2 (ci: implement enterprise github actions pipeline)
 
       - name: Install dependencies
         run: npm ci
 
-<<<<<<< HEAD
-      - name: Run Lint (Style Check)
-=======
       - name: Run Lint
->>>>>>> 9944cb2 (ci: implement enterprise github actions pipeline)
         run: npm run lint
 
       - name: Run Prisma Generate
@@ -66,8 +49,9 @@ jobs:
       - name: Run E2E Tests
         env:
           DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
-          AT_SECRET: ${{ secrets.AT_SECRET }}
-          RT_SECRET: ${{ secrets.RT_SECRET }}
+          # Ajustado según tu captura de pantalla de GitHub Secrets
+          AT_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+          RT_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
           NODE_ENV: test
         run: npm run test:e2e
 
