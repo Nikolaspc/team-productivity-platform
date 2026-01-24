@@ -22,4 +22,5 @@ export declare class TeamsController {
         updatedAt: Date;
         deletedAt: Date | null;
     })[]>;
+    remove(id: number): Promise<any>;
 }

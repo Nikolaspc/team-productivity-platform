@@ -19,8 +19,10 @@ const teams_service_1 = require("./teams.service");
 const create_team_dto_1 = require("./dto/create-team.dto");
 const get_current_user_id_decorator_1 = require("../../common/decorators/get-current-user-id.decorator");
 const roles_guard_1 = require("../../common/guards/roles.guard");
+const team_owner_guard_1 = require("../../common/guards/team-owner.guard");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const client_1 = require("@prisma/client");
+const at_guard_1 = require("../../auth/guards/at.guard");
 let TeamsController = class TeamsController {
     teamsService;
     constructor(teamsService) {
@@ -31,6 +33,9 @@ let TeamsController = class TeamsController {
     }
     findAll(userId) {
         return this.teamsService.findAll(userId);
+    }
+    remove(id) {
+        return this.teamsService.remove(id);
     }
 };
 exports.TeamsController = TeamsController;
@@ -52,11 +57,20 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], TeamsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, common_1.UseGuards)(team_owner_guard_1.TeamOwnerGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Soft-delete a team (Owner only)' }),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], TeamsController.prototype, "remove", null);
 exports.TeamsController = TeamsController = __decorate([
     (0, swagger_1.ApiTags)('Teams'),
     (0, swagger_1.ApiBearerAuth)('access-token'),
     (0, common_1.Controller)('teams'),
-    (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
+    (0, common_1.UseGuards)(at_guard_1.AtGuard, roles_guard_1.RolesGuard),
     __metadata("design:paramtypes", [teams_service_1.TeamsService])
 ], TeamsController);
 //# sourceMappingURL=teams.controller.js.map

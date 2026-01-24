@@ -46,6 +46,25 @@ let TeamsService = TeamsService_1 = class TeamsService {
             },
         });
     }
+    async remove(teamId) {
+        return this.prisma.extended.$transaction(async (tx) => {
+            const now = new Date();
+            await tx.task.updateMany({
+                where: { project: { teamId } },
+                data: { deletedAt: now },
+            });
+            await tx.project.updateMany({
+                where: { teamId },
+                data: { deletedAt: now },
+            });
+            const team = await tx.team.update({
+                where: { id: teamId },
+                data: { deletedAt: now },
+            });
+            this.logger.warn(`SaaS Tenant Deactivated: Team ${teamId} and cascading resources marked as deleted.`);
+            return team;
+        });
+    }
 };
 exports.TeamsService = TeamsService;
 exports.TeamsService = TeamsService = TeamsService_1 = __decorate([

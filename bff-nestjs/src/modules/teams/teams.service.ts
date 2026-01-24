@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+// bff-nestjs/src/teams/teams.service.ts
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTeamDto } from './dto/create-team.dto';
-import { TeamRole } from '@prisma/client'; // English: Essential for type safety with Enums
+import { TeamRole } from '@prisma/client';
 
 @Injectable()
 export class TeamsService {
@@ -11,12 +12,10 @@ export class TeamsService {
 
   async create(userId: number, dto: CreateTeamDto) {
     return this.prisma.extended.$transaction(async (tx) => {
-      // Create team
       const team = await tx.team.create({
         data: { name: dto.name },
       });
 
-      // Create membership with OWNER role
       await tx.teamMember.create({
         data: {
           userId: userId,
@@ -40,6 +39,39 @@ export class TeamsService {
       include: {
         _count: { select: { members: true, projects: true } },
       },
+    });
+  }
+
+  /**
+   * Enterprise SaaS Logic: Soft delete team and all associated resources.
+   * Only called after TeamOwnerGuard validation.
+   */
+  async remove(teamId: number) {
+    return this.prisma.extended.$transaction(async (tx) => {
+      const now = new Date();
+
+      // 1. English: Cascade soft-delete for tasks
+      await (tx as any).task.updateMany({
+        where: { project: { teamId } },
+        data: { deletedAt: now },
+      });
+
+      // 2. English: Cascade soft-delete for projects
+      await (tx as any).project.updateMany({
+        where: { teamId },
+        data: { deletedAt: now },
+      });
+
+      // 3. English: Soft-delete the team
+      const team = await (tx as any).team.update({
+        where: { id: teamId },
+        data: { deletedAt: now },
+      });
+
+      this.logger.warn(
+        `SaaS Tenant Deactivated: Team ${teamId} and cascading resources marked as deleted.`,
+      );
+      return team;
     });
   }
 }

@@ -1,28 +1,29 @@
+// bff-nestjs/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-// import { BullModule } from '@nestjs/bullmq'; // English: Commented out because no Docker/Redis
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { TerminusModule } from '@nestjs/terminus';
 
-import { AuthModule } from './auth/auth.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { StorageModule } from './storage/storage.module';
+// English: Using @/ alias for clean enterprise-level imports
+import { AuthModule } from '@/auth/auth.module';
+import { PrismaModule } from '@/prisma/prisma.module';
+import { StorageModule } from '@/storage/storage.module';
 
-import { NotificationsModule } from './modules/notifications/notifications.module';
-import { TeamsModule } from './modules/teams/teams.module';
-import { ProjectsModule } from './modules/projects/projects.module';
-import { TasksModule } from './modules/tasks/tasks.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
-import { InvitationsModule } from './modules/invitations/invitations.module';
-import { MailModule } from './modules/mail/mail.module';
-import { HealthModule } from './modules/health/health.module';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
+import { TeamsModule } from '@/modules/teams/teams.module';
+import { ProjectsModule } from '@/modules/projects/projects.module';
+import { TasksModule } from '@/modules/tasks/tasks.module';
+import { DashboardModule } from '@/modules/dashboard/dashboard.module';
+import { InvitationsModule } from '@/modules/invitations/invitations.module';
+import { MailModule } from '@/modules/mail/mail.module';
+import { HealthModule } from '@/modules/health/health.module';
 
-import { AtGuard } from './auth/guards/at.guard';
-import { RolesGuard } from './common/guards/roles.guard';
-import { envValidationSchema } from './common/config/env.validation';
+import { AtGuard } from '@/auth/guards/at.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { envValidationSchema } from '@/common/config/env.validation';
 
 @Module({
   imports: [
@@ -44,18 +45,6 @@ import { envValidationSchema } from './common/config/env.validation';
         },
       }),
     }),
-
-    /* // English: Temporarily disabled BullModule as Redis is not available locally
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get('REDIS_HOST') || 'localhost',
-          port: config.get('REDIS_PORT') || 6379,
-        },
-      }),
-    }), 
-    */
 
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
@@ -82,6 +71,7 @@ import { envValidationSchema } from './common/config/env.validation';
     InvitationsModule,
   ],
   providers: [
+    // English: Global guards execution order is preserved
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AtGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

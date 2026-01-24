@@ -23,4 +23,5 @@ export declare class TeamsService {
         updatedAt: Date;
         deletedAt: Date | null;
     })[]>;
+    remove(teamId: number): Promise<any>;
 }
