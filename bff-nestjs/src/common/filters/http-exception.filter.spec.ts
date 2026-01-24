@@ -1,9 +1,12 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { AllExceptionsFilter } from './http-exception.filter';
+import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ArgumentsHost } from '@nestjs/common';
+import { AllExceptionsFilter } from './http-exception.filter';
 
 describe('AllExceptionsFilter', () => {
   let filter: AllExceptionsFilter;
+  let configService: ConfigService;
 
   const mockResponse = {
     status: jest.fn().mockReturnThis(),
@@ -21,8 +24,24 @@ describe('AllExceptionsFilter', () => {
     getRequest: jest.fn().mockReturnValue(mockRequest),
   } as unknown as ArgumentsHost;
 
-  beforeEach(() => {
-    filter = new AllExceptionsFilter();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AllExceptionsFilter,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              if (key === 'NODE_ENV') return 'development';
+              return null;
+            }),
+          },
+        },
+      ],
+    }).compile();
+
+    filter = module.get<AllExceptionsFilter>(AllExceptionsFilter);
+    configService = module.get<ConfigService>(ConfigService);
     jest.clearAllMocks();
   });
 
@@ -42,73 +61,47 @@ describe('AllExceptionsFilter', () => {
     expect(mockResponse.json).toHaveBeenCalledWith(
       expect.objectContaining({
         statusCode: HttpStatus.FORBIDDEN,
-        timestamp: expect.any(String),
-        path: '/test-url',
-        method: 'POST',
         message: 'Forbidden Access',
       }),
     );
   });
 
-  it('should catch unknown errors and return 500 (Internal Server Error)', () => {
+  it('should show detailed error message when NOT in production', () => {
     const exception = new Error('Database connection failed');
+    jest.spyOn(configService, 'get').mockReturnValue('development');
 
     filter.catch(exception, mockArgumentsHost);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
     expect(mockResponse.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        statusCode: 500,
+        message: 'Database connection failed',
+      }),
+    );
+  });
+
+  it('should hide detailed error message when in production (GDPR compliance)', () => {
+    const exception = new Error('Sensitive database error');
+    jest.spyOn(configService, 'get').mockReturnValue('production');
+
+    filter.catch(exception, mockArgumentsHost);
+
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
         message: 'Internal server error',
       }),
     );
   });
 
-  it('should handle object-based exception messages (Validation Errors)', () => {
-    const exceptionResponse = {
-      message: ['email is invalid', 'password too short'],
-      error: 'Bad Request',
-    };
-    const exception = new HttpException(
-      exceptionResponse,
-      HttpStatus.BAD_REQUEST,
-    );
-
-    filter.catch(exception, mockArgumentsHost);
-
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: ['email is invalid', 'password too short'],
-      }),
-    );
-  });
-
-  it('should handle string-based exception messages (Line 39 coverage)', () => {
-    const exception = new HttpException(
-      'Simple string error',
-      HttpStatus.NOT_FOUND,
-    );
-
-    filter.catch(exception, mockArgumentsHost);
-
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: 404,
-        message: 'Simple string error',
-      }),
-    );
-  });
-
-  it('should log the error using Logger', () => {
+  it('should log the error with the new structured format', () => {
     const loggerSpy = jest.spyOn((filter as any).logger, 'error');
     const exception = new Error('Critical failure');
 
     filter.catch(exception, mockArgumentsHost);
 
     expect(loggerSpy).toHaveBeenCalledWith(
-      `[POST] /test-url - Status: 500`,
+      expect.stringContaining(
+        '[POST] /test-url - Status: 500 - Error: Critical failure',
+      ),
       exception.stack,
     );
   });

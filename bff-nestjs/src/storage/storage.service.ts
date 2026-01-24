@@ -36,24 +36,34 @@ export class StorageService {
     });
 
     await this.s3Client.send(command);
+
     const endpoint = this.config.get<string>('STORAGE_ENDPOINT')!;
     return `${endpoint}/${bucket}/${fileKey}`;
   }
 
   /**
    * Deletes a file from Cloud Storage bucket with key extraction
+   * English: Extracts the file key from the full URL and deletes it from S3
+   * Works with Supabase S3 endpoint format
    */
   async deleteFile(fileUrl: string): Promise<void> {
     const bucket = this.config.get<string>('STORAGE_BUCKET')!;
 
     try {
+      // English: Extract the file key from the URL
+      // URL format: https://iaqnnevdkhpkpyrwecfh.storage.supabase.co/storage/v1/s3/{bucket}/task-attachments/...
+      // We need to extract: task-attachments/FILENAME
+
       const bucketMarker = `/${bucket}/`;
       const markerIndex = fileUrl.indexOf(bucketMarker);
 
       if (markerIndex === -1) {
-        throw new Error(`Bucket marker ${bucketMarker} not found in URL`);
+        throw new Error(
+          `Bucket marker "${bucketMarker}" not found in URL: ${fileUrl}`,
+        );
       }
 
+      // English: Extract everything after the bucket name (the file key)
       const fileKey = fileUrl.substring(markerIndex + bucketMarker.length);
 
       this.logger.log(`Attempting to delete cloud file with key: ${fileKey}`);
@@ -64,7 +74,9 @@ export class StorageService {
       });
 
       await this.s3Client.send(command);
-    } catch (error: any) {
+
+      this.logger.log(`Successfully deleted file: ${fileKey}`);
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Cloud Delete Error: ${errorMessage}`);

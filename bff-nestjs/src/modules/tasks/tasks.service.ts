@@ -19,21 +19,28 @@ export class TasksService {
     private prisma: PrismaService,
     private notifications: NotificationsGateway,
     private storageService: StorageService,
-    private attachmentsService: AttachmentsService, // English: Injected to handle attachment logic
+    private attachmentsService: AttachmentsService,
   ) {}
 
   async create(userId: number, dto: CreateTaskDto) {
     // English: Check if project exists and user has access via membership
-    const project = await this.prisma.extended.project.findUnique({
-      where: { id: dto.projectId },
-      include: { team: { include: { members: { where: { userId } } } } },
+    const project = await this.prisma.extended.project.findFirst({
+      where: {
+        id: dto.projectId,
+        team: {
+          members: {
+            some: { userId },
+          },
+        },
+      },
+      include: {
+        team: true,
+      },
     });
 
-    if (!project) throw new NotFoundException('Project not found');
-
-    if (project.team.members.length === 0) {
+    if (!project) {
       throw new ForbiddenException(
-        'No permission to add tasks to this project',
+        'Project not found or no permission to add tasks',
       );
     }
 
@@ -51,11 +58,11 @@ export class TasksService {
     // English: Notify via WebSocket. Wrap in try-catch to prevent main flow failure
     try {
       this.notifications.notifyTaskUpdate(
-        project.teamId,
+        project.team.id,
         task.title,
         'created',
       );
-    } catch (e) {
+    } catch (error) {
       this.logger.warn(
         `Failed to send WebSocket notification for task ${task.id}`,
       );
@@ -66,39 +73,29 @@ export class TasksService {
 
   async addAttachment(
     taskId: number,
-    fileData: { filename: string; url: string; mimetype: string; size: number },
+    fileData: {
+      filename: string;
+      url: string;
+      mimetype: string;
+      size: number;
+    },
   ) {
     // English: Ensure the task exists before calling attachment service
     const task = await this.prisma.extended.task.findUnique({
       where: { id: taskId },
     });
-    if (!task) throw new NotFoundException('Task not found');
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
 
     return this.attachmentsService.create(taskId, fileData);
   }
 
   async removeAttachment(attachmentId: number) {
-    // English: Use delegated service to find the attachment
-    const attachment = await this.attachmentsService.findOne(attachmentId);
-
-    try {
-      // 1. Delete from Cloud Storage (S3)
-      await this.storageService.deleteFile(attachment.url);
-
-      // 2. Delete from Database via AttachmentsService
-      return await this.attachmentsService.remove(attachmentId);
-    } catch (error) {
-      // English: Fix for TS18046: 'error' is of type 'unknown'
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-
-      this.logger.error(
-        `Error removing attachment ${attachmentId}: ${errorMessage}`,
-      );
-      throw new InternalServerErrorException(
-        'Failed to delete attachment from cloud',
-      );
-    }
+    // English: Use delegated service to handle attachment removal
+    // This includes both storage deletion and database soft-delete
+    return this.attachmentsService.remove(attachmentId);
   }
 
   async findAllByProject(userId: number, projectId: number) {
@@ -106,18 +103,77 @@ export class TasksService {
     const project = await this.prisma.extended.project.findFirst({
       where: {
         id: projectId,
-        team: { members: { some: { userId } } },
+        team: {
+          members: {
+            some: { userId },
+          },
+        },
       },
     });
 
-    if (!project) throw new ForbiddenException('Project access denied');
+    if (!project) {
+      throw new ForbiddenException('Project access denied');
+    }
 
     return this.prisma.extended.task.findMany({
       where: { projectId },
       include: {
-        assignee: { select: { name: true, email: true } },
-        attachments: true,
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            url: true,
+            mimetype: true,
+            size: true,
+            createdAt: true,
+          },
+        },
       },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * English: Recovery method for soft-deleted tasks.
+   * This is useful for compliance and user-requested recovery.
+   * Only accessible to admins or team owners.
+   */
+  async restoreTask(taskId: number) {
+    return (this.prisma.extended.task as any).restore(taskId);
+  }
+
+  /**
+   * English: Permanent deletion of a task.
+   * This operation cannot be undone. Use with extreme caution.
+   * Should only be called after user confirmation and audit logging.
+   */
+  async permanentlyDeleteTask(taskId: number) {
+    // English: First, hard-delete all attachments
+    const attachments = await this.prisma.attachment.findMany({
+      where: { taskId },
+    });
+
+    // English: Delete attachments from storage
+    for (const attachment of attachments) {
+      try {
+        await this.storageService.deleteFile(attachment.url);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to delete attachment file ${attachment.id} from storage`,
+        );
+      }
+    }
+
+    // English: Hard delete the task (bypasses soft-delete logic)
+    return this.prisma.task.delete({
+      where: { id: taskId },
     });
   }
 }
