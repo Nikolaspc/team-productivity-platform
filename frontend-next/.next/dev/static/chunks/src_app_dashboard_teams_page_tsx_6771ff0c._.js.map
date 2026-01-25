@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///Users/nikolas/team-productivity-platform/frontend-next/src/app/dashboard/teams/page.tsx"],"sourcesContent":["// src/app/dashboard/teams/page.tsx\n'use client';\n\nimport { Users } from 'lucide-react';\n\nexport default function TeamsPage() {\n  return (\n    <div className=\"p-6\">\n      <h1 className=\"text-2xl font-bold text-slate-900 flex items-center gap-2\">\n        <Users className=\"text-blue-600\" />\n        My Teams\n      </h1>\n      <div className=\"mt-8 bg-white border border-slate-200 rounded-xl p-12 text-center\">\n        <p className=\"text-slate-500 font-medium\">\n          Team management module coming soon.\n        </p>\n      </div>\n    </div>\n  );\n}\n"],"names":[],"mappings":";;;;;AAGA;AAHA,mCAAmC;AACnC;;;AAIe,SAAS;IACtB,qBACE,6LAAC;QAAI,WAAU;;0BACb,6LAAC;gBAAG,WAAU;;kCACZ,6LAAC,gNAAK;wBAAC,WAAU;;;;;;oBAAkB;;;;;;;0BAGrC,6LAAC;gBAAI,WAAU;0BACb,cAAA,6LAAC;oBAAE,WAAU;8BAA6B;;;;;;;;;;;;;;;;;AAMlD;KAdwB"}}]
-}
