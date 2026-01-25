@@ -1,10 +1,13 @@
-// src/app/layout.tsx
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
 
-// English: Loading the Inter font for the entire application
 const inter = Inter({ subsets: ['latin'] });
+
+export const metadata = {
+  title: 'SaaS Platform',
+  description: 'Enterprise Team Productivity',
+};
 
 export default function RootLayout({
   children,
@@ -14,11 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {/* English: This is the main injection point for all pages and nested layouts */}
         {children}
-
-        {/* English: Global toast notifications for the login and server responses */}
-        <Toaster position="top-right" richColors />
+        {/* English: RichColors enabled for success/error distinction */}
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

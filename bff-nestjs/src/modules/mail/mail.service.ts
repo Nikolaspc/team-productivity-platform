@@ -1,16 +1,41 @@
-// En src/modules/mail/mail.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { IQueueService } from '@/common/infrastructure/queues/queue.interface';
 
 @Injectable()
 export class MailService {
-  // constructor(@InjectQueue('mail') private mailQueue: Queue) {} // English: Comment this out
+  private readonly logger = new Logger(MailService.name);
 
-  async sendInvitationEmail(email: string, teamName: string, token: string) {
-    // English: Instead of adding to BullMQ queue, we just log it for now
-    console.log(
-      `[SIMULATED MAIL] Sending invitation to ${email} for team ${teamName}`,
+  constructor(
+    @Inject('MAIL_QUEUE') private readonly mailQueue: IQueueService,
+  ) {}
+
+  /**
+   * English: Sends a welcome email to a new user.
+   * Logic: Dispatches a job to the queue (Memory or Redis).
+   */
+  async sendWelcomeEmail(email: string, name: string) {
+    this.logger.log(`Scheduling welcome email for: ${email}`);
+    await this.mailQueue.addJob('send-welcome', { email, name });
+  }
+
+  /**
+   * English: Sends a team invitation email.
+   * This is the method causing the TS2339 error.
+   */
+  async sendInvitationEmail(
+    email: string,
+    teamName: string,
+    inviteUrl: string,
+  ) {
+    this.logger.log(
+      `Scheduling invitation email for: ${email} to join ${teamName}`,
     );
-    console.log(`[SIMULATED MAIL] Token: ${token}`);
-    return true;
+
+    // English: We dispatch the job. The Processor will pick this up.
+    await this.mailQueue.addJob('send-invitation', {
+      email,
+      teamName,
+      inviteUrl,
+    });
   }
 }

@@ -23,7 +23,8 @@ import { HealthModule } from '@/modules/health/health.module';
 
 import { AtGuard } from '@/auth/guards/at.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
-import { envValidationSchema } from '@/common/config/env.validation';
+// English: Unified validation schema location
+import { envValidationSchema } from '@/config/env.validation';
 
 @Module({
   imports: [
@@ -37,7 +38,7 @@ import { envValidationSchema } from '@/common/config/env.validation';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         pinoHttp: {
-          level: config.get('NODE_ENV') !== 'production' ? 'debug' : 'info',
+          level: config.get('LOG_LEVEL') || 'info',
           transport:
             config.get('NODE_ENV') !== 'production'
               ? { target: 'pino-pretty', options: { colorize: true } }
@@ -51,7 +52,7 @@ import { envValidationSchema } from '@/common/config/env.validation';
       useFactory: (config: ConfigService) => [
         {
           ttl: config.get('THROTTLE_TTL') || 60000,
-          limit: config.get('THROTTLE_LIMIT') || 10,
+          limit: config.get('THROTTLE_LIMIT') || 20,
         },
       ],
     }),
@@ -71,7 +72,7 @@ import { envValidationSchema } from '@/common/config/env.validation';
     InvitationsModule,
   ],
   providers: [
-    // English: Global guards execution order is preserved
+    // English: Global guards execution order is preserved: Rate Limit -> Auth -> RBAC
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AtGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

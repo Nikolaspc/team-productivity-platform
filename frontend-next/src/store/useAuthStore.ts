@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import Cookies from 'js-cookie';
 
 interface User {
@@ -14,18 +14,18 @@ interface AuthState {
   isAuthenticated: boolean;
   setAuth: (user: User, token: string) => void;
   logout: () => void;
+  // English: Added a method to check current session validity
+  checkAuth: () => void;
 }
 
-// English: Using persist middleware to keep user data after page reload
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
-      // English: Check for refresh_token to match our proxy.ts logic
-      isAuthenticated: !!Cookies.get('refresh_token'),
+      isAuthenticated: false,
+
       setAuth: (user, token) => {
-        // English: Although the server sets refresh_token via HttpOnly,
-        // we store the access_token for client-side API calls.
+        // English: Access token for headers, expires in 7 days
         Cookies.set('access_token', token, {
           expires: 7,
           secure: process.env.NODE_ENV === 'production',
@@ -33,16 +33,36 @@ export const useAuthStore = create<AuthState>()(
         });
         set({ user, isAuthenticated: true });
       },
+
       logout: () => {
-        // English: Clear all possible tokens and redirect
+        // English: Clear tokens and state
         Cookies.remove('access_token');
         Cookies.remove('refresh_token');
+
+        // English: Clear localStorage specifically
+        localStorage.removeItem('auth-storage');
+
         set({ user: null, isAuthenticated: false });
-        window.location.href = '/auth/login';
+
+        // English: Hard redirect to clear any residual memory state
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
+      },
+
+      checkAuth: () => {
+        const token = Cookies.get('access_token');
+        const hasUser = !!get().user;
+        set({ isAuthenticated: !!token && hasUser });
       },
     }),
     {
-      name: 'auth-storage', // English: Key for localStorage
+      name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
+      // English: Prevent hydration errors by waiting for the client
+      onRehydrateStorage: () => (state) => {
+        if (state) state.checkAuth();
+      },
     },
   ),
 );
