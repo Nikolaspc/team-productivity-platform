@@ -1,98 +1,244 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Team Productivity Platform – Monorepo
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A SaaS-oriented application featuring a Backend-for-Frontend (BFF) architecture and modern frontend client. This documentation outlines the system structure, execution procedures, testing protocols, and validation standards following enterprise best practices.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 📋 Repository Structure
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+```
+.
+├── bff-nestjs/           # Backend for Frontend (NestJS)
+├── frontend-next/        # Frontend (Next.js)
+├── .github/workflows/    # CI/CD & Quality Gates
+└── README.md
 ```
 
-## Compile and run the project
+- **Backend (BFF)**: Core system component exposing APIs consumed by the frontend
+- **Frontend**: Next.js application communicating exclusively with the BFF
+- **CI/CD**: Automated pipelines enforcing code quality and stability
 
-```bash
-# development
-$ npm run start
+---
 
-# watch mode
-$ npm run start:dev
+## 🏗️ Backend (BFF – NestJS)
 
-# production mode
-$ npm run start:prod
+### Technology Stack
+
+| Component         | Technology                  |
+| ----------------- | --------------------------- |
+| Runtime           | Node.js                     |
+| Framework         | NestJS                      |
+| Database          | PostgreSQL                  |
+| ORM               | Prisma                      |
+| Authentication    | JWT (Access/Refresh Tokens) |
+| Background Jobs   | BullMQ                      |
+| Monitoring        | Prometheus                  |
+| Logging           | Pino (structured)           |
+| API Documentation | Swagger/OpenAPI             |
+
+### Core Responsibilities
+
+- Authentication and authorization management
+- User, team, and permission handling
+- API exposure for frontend consumption
+- Integration with external services (mail, storage, etc.)
+- Observability through structured logging and metrics
+
+---
+
+## 🛠️ Local Development Requirements
+
+- **Node.js** (version aligned with CI)
+- **npm**
+- **PostgreSQL**
+- **Redis** (optional, depending on configuration)
+- **Docker** (recommended)
+
+---
+
+## ⚙️ Environment Configuration
+
+The backend requires environment variables defined in `bff-nestjs/.env.example`.
+
+### Key Environment Variables
+
+```env
+DATABASE_URL          # PostgreSQL connection string
+AT_SECRET            # Access token secret
+RT_SECRET            # Refresh token secret
+COOKIE_SECRET        # Session cookie secret
+FRONTEND_URL         # Frontend application URL
+PORT                 # Server port
 ```
 
-## Run tests
+### Setup Instructions
 
 ```bash
-# unit tests
-$ npm run test
+# Copy environment template
+cp bff-nestjs/.env.example bff-nestjs/.env
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Update variables with your local values
 ```
 
-## Deployment
+⚠️ **Security Note**: Production secrets must be managed through a secure secret management solution (AWS Secrets Manager, HashiCorp Vault, etc.)
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+---
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 🚀 Running the Backend Locally
+
+### Installation & Setup
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+cd bff-nestjs
+npm ci
+npx prisma generate
+npx prisma migrate deploy
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Start Development Server
 
-## Resources
+```bash
+npm run start:dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+The backend will be accessible at the configured `PORT`.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Database Seeding (Optional)
 
-## Support
+```bash
+npm run prisma:seed
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+---
 
-## Stay in touch
+## 🗄️ Database & Migrations
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+The data model is defined in `prisma/schema.prisma`. All schema modifications are version-controlled using Prisma migrations.
 
-## License
+### Applying Migrations
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```bash
+# Deploy pending migrations
+npx prisma migrate deploy
+
+# Create a new migration
+npx prisma migrate dev --name <migration_name>
+```
+
+This approach ensures consistency across development, staging, and production environments.
+
+---
+
+## 🧪 Testing
+
+### Test Coverage
+
+- Unit tests
+- Integration tests
+- End-to-end (e2e) tests
+
+### Running Tests Locally
+
+```bash
+# Unit and integration tests
+npm run test
+
+# End-to-end tests
+npm run test:e2e
+
+# Watch mode
+npm run test:watch
+```
+
+**Note**: Tests are automatically executed as part of the CI quality gate on every Pull Request.
+
+---
+
+## 📊 Observability
+
+### Logging
+
+Structured logging is implemented using **Pino**, providing:
+
+- Machine-readable log format
+- Request/response tracing
+- Error context and stack traces
+
+### Metrics
+
+**Prometheus** metrics are exposed at the `/metrics` endpoint, supporting:
+
+- Performance monitoring
+- Operational visibility
+- Alerting and dashboards
+
+These components enable effective debugging and monitoring in staging and production environments.
+
+---
+
+## 🔄 CI/CD & Quality Gates
+
+GitHub Actions pipelines validate each Pull Request:
+
+- ✓ Dependency installation (`npm ci`)
+- ✓ Code linting
+- ✓ Build verification
+- ✓ Test execution (unit, integration, e2e)
+- ✓ Security auditing (`npm audit`)
+
+Pipelines are triggered automatically on Pull Requests to ensure consistent code quality standards.
+
+---
+
+## 🎨 Frontend (Next.js)
+
+The frontend application is located in `frontend-next/`.
+
+### Key Characteristics
+
+- Communicates exclusively with the backend BFF
+- Independent development lifecycle
+- Separate dependency management
+
+For frontend-specific documentation, refer to `frontend-next/README.md`.
+
+---
+
+## 📈 Development Workflow
+
+### Branch Strategy
+
+| Branch      | Purpose                         |
+| ----------- | ------------------------------- |
+| `main`      | Stable, production-ready code   |
+| `develop`   | Integration branch for features |
+| `feature/*` | Feature development branches    |
+
+### Pull Request Checklist
+
+Before submitting a Pull Request, ensure:
+
+- ✓ Successful build
+- ✓ Linting and tests pass
+- ✓ No secrets committed
+- ✓ Data model changes documented
+- ✓ Meaningful commit messages
+
+---
+
+## 📝 Additional Notes
+
+This repository implements a realistic, production-oriented SaaS architecture with emphasis on:
+
+- **Maintainability**: Clear structure and documentation
+- **Automation**: Comprehensive CI/CD pipelines
+- **Operational Readiness**: Observability and monitoring capabilities
+- **Security**: Secure authentication and secret management
+
+The backend is the primary area of technical contribution and is documented in detail within this README.
+
+---
+
+## 📞 Support
+
+For questions or issues, please refer to the project documentation or open an issue in the repository.
