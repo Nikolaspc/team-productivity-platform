@@ -1,244 +1,126 @@
-# Team Productivity Platform – Monorepo
+# Team Productivity Platform
 
-A SaaS-oriented application featuring a Backend-for-Frontend (BFF) architecture and modern frontend client. This documentation outlines the system structure, execution procedures, testing protocols, and validation standards following enterprise best practices.
+![CI Status](https://github.com/tu-usuario/repo/actions/workflows/ci.yml/badge.svg)
+![Node Version](https://img.shields.io/badge/node-%3E%3D20-green)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
----
-
-## 📋 Repository Structure
-
-```
-.
-├── bff-nestjs/           # Backend for Frontend (NestJS)
-├── frontend-next/        # Frontend (Next.js)
-├── .github/workflows/    # CI/CD & Quality Gates
-└── README.md
-```
-
-- **Backend (BFF)**: Core system component exposing APIs consumed by the frontend
-- **Frontend**: Next.js application communicating exclusively with the BFF
-- **CI/CD**: Automated pipelines enforcing code quality and stability
+A production-ready Enterprise MVP for team management and productivity tracking. This platform implements a **Backend-for-Frontend (BFF)** architecture using **NestJS** (Backend) and **Next.js** (Frontend), focusing on Clean Architecture, Domain-Driven Design (DDD), and robust security practices.
 
 ---
 
-## 🏗️ Backend (BFF – NestJS)
+## 🛠 Tech Stack & Architecture
 
-### Technology Stack
+### Backend (`/bff-nestjs`)
 
-| Component         | Technology                  |
-| ----------------- | --------------------------- |
-| Runtime           | Node.js                     |
-| Framework         | NestJS                      |
-| Database          | PostgreSQL                  |
-| ORM               | Prisma                      |
-| Authentication    | JWT (Access/Refresh Tokens) |
-| Background Jobs   | BullMQ                      |
-| Monitoring        | Prometheus                  |
-| Logging           | Pino (structured)           |
-| API Documentation | Swagger/OpenAPI             |
+- **Framework:** NestJS (Modular Architecture)
+- **Language:** TypeScript
+- **Database:** PostgreSQL + Prisma ORM (with Soft Delete Middleware)
+- **Auth:** JWT (Access + Refresh Tokens) with HttpOnly Cookies
+- **Queueing:** Abstracted Queue Service (Supports Redis & In-Memory for local dev)
+- **Testing:** Jest (Unit) + Supertest (E2E)
 
-### Core Responsibilities
+### Frontend (`/frontend-nextjs`)
 
-- Authentication and authorization management
-- User, team, and permission handling
-- API exposure for frontend consumption
-- Integration with external services (mail, storage, etc.)
-- Observability through structured logging and metrics
+- **Framework:** Next.js 14 (App Router)
+- **State Management:** Zustand
+- **Styling:** Tailwind CSS
+- **HTTP Client:** Axios (with Interceptors for auto-refresh token flow)
 
----
+### Enterprise Patterns
 
-## 🛠️ Local Development Requirements
-
-- **Node.js** (version aligned with CI)
-- **npm**
-- **PostgreSQL**
-- **Redis** (optional, depending on configuration)
-- **Docker** (recommended)
+- **Role-Based Access Control (RBAC):** Guards for Admin, Manager, and User roles.
+- **Data Integrity:** Transactional consistency and Soft Deletes.
+- **Security:** Helmet, CORS, Rate Limiting, and strict input validation (DTOs).
 
 ---
 
-## ⚙️ Environment Configuration
+## 🚀 Quickstart (Local Development)
 
-The backend requires environment variables defined in `bff-nestjs/.env.example`.
+### Prerequisites
 
-### Key Environment Variables
+- Node.js (v20+)
+- PostgreSQL (Local instance or Docker container)
+- _(Optional)_ Redis (Platform falls back to In-Memory queue if Redis is missing)
 
-```env
-DATABASE_URL          # PostgreSQL connection string
-AT_SECRET            # Access token secret
-RT_SECRET            # Refresh token secret
-COOKIE_SECRET        # Session cookie secret
-FRONTEND_URL         # Frontend application URL
-PORT                 # Server port
-```
-
-### Setup Instructions
+### 1. Clone & Setup
 
 ```bash
-# Copy environment template
-cp bff-nestjs/.env.example bff-nestjs/.env
+git clone <repository-url>
+cd team-productivity-platform
 
-# Update variables with your local values
-```
+Backend Setup
 
-⚠️ **Security Note**: Production secrets must be managed through a secure secret management solution (AWS Secrets Manager, HashiCorp Vault, etc.)
-
----
-
-## 🚀 Running the Backend Locally
-
-### Installation & Setup
-
-```bash
+Bash
 cd bff-nestjs
-npm ci
-npx prisma generate
-npx prisma migrate deploy
-```
 
-### Start Development Server
+# Install dependencies
+npm install
 
-```bash
-npm run start:dev
-```
+# Configure Environment
+cp .env.example .env
+# UPDATE .env with your local DB credentials!
+# Ensure QUEUE_DRIVER=memory if you don't have Redis running.
 
-The backend will be accessible at the configured `PORT`.
+# Run Migrations & Seed Data
+npm run migrate
+npm run seed
+3. Frontend Setup
 
-### Database Seeding (Optional)
+Bash
+cd ../frontend-nextjs
 
-```bash
-npm run prisma:seed
-```
+# Install dependencies
+npm install
 
----
+# Configure Environment
+cp .env.local.example .env.local
 
-## 🗄️ Database & Migrations
+# Start Development Server
+npm run dev
+4. Access the App
 
-The data model is defined in `prisma/schema.prisma`. All schema modifications are version-controlled using Prisma migrations.
+Open http://localhost:3000 in your browser.
 
-### Applying Migrations
+🔑 Demo Accounts
+The database is seeded with the following accounts for demonstration purposes:
 
-```bash
-# Deploy pending migrations
-npx prisma migrate deploy
+Role	Email	Password	Access Level
+Admin	admin@demo.local	Password123	Full System Access
+Manager	manager@demo.local	Password123	Team Management
+User	user@demo.local	Password123	Task Execution
+🧪 Testing Strategy
+The project includes a comprehensive E2E test suite covering critical user flows.
 
-# Create a new migration
-npx prisma migrate dev --name <migration_name>
-```
-
-This approach ensures consistency across development, staging, and production environments.
-
----
-
-## 🧪 Testing
-
-### Test Coverage
-
-- Unit tests
-- Integration tests
-- End-to-end (e2e) tests
-
-### Running Tests Locally
-
-```bash
-# Unit and integration tests
-npm run test
-
-# End-to-end tests
+Bash
+# Run E2E Tests (Backend)
+cd bff-nestjs
 npm run test:e2e
+Coverage:
 
-# Watch mode
-npm run test:watch
+Auth: Registration, Login, Token Refresh.
+
+Teams: Creation, Invitations, Role assignment.
+
+Tasks: CRUD operations, Status transitions.
+
+📂 Project Structure
+.
+├── bff-nestjs/             # Backend Application
+│   ├── src/
+│   │   ├── common/         # Shared Guards, Decorators, Filters
+│   │   ├── modules/        # Feature Modules (Auth, Users, Teams, Tasks)
+│   │   └── providers/      # Infrastructure (Prisma, Queue, Mail)
+│   └── test/               # End-to-End Tests
+│
+├── frontend-nextjs/        # Frontend Application
+│   ├── src/
+│   │   ├── app/            # Next.js App Router Pages
+│   │   ├── components/     # Reusable UI Components
+│   │   └── stores/         # Zustand State Stores
+│   └── public/
+│
+└── README.md               # You are here
+
+📜 License
+This project is licensed under the MIT License.
 ```
-
-**Note**: Tests are automatically executed as part of the CI quality gate on every Pull Request.
-
----
-
-## 📊 Observability
-
-### Logging
-
-Structured logging is implemented using **Pino**, providing:
-
-- Machine-readable log format
-- Request/response tracing
-- Error context and stack traces
-
-### Metrics
-
-**Prometheus** metrics are exposed at the `/metrics` endpoint, supporting:
-
-- Performance monitoring
-- Operational visibility
-- Alerting and dashboards
-
-These components enable effective debugging and monitoring in staging and production environments.
-
----
-
-## 🔄 CI/CD & Quality Gates
-
-GitHub Actions pipelines validate each Pull Request:
-
-- ✓ Dependency installation (`npm ci`)
-- ✓ Code linting
-- ✓ Build verification
-- ✓ Test execution (unit, integration, e2e)
-- ✓ Security auditing (`npm audit`)
-
-Pipelines are triggered automatically on Pull Requests to ensure consistent code quality standards.
-
----
-
-## 🎨 Frontend (Next.js)
-
-The frontend application is located in `frontend-next/`.
-
-### Key Characteristics
-
-- Communicates exclusively with the backend BFF
-- Independent development lifecycle
-- Separate dependency management
-
-For frontend-specific documentation, refer to `frontend-next/README.md`.
-
----
-
-## 📈 Development Workflow
-
-### Branch Strategy
-
-| Branch      | Purpose                         |
-| ----------- | ------------------------------- |
-| `main`      | Stable, production-ready code   |
-| `develop`   | Integration branch for features |
-| `feature/*` | Feature development branches    |
-
-### Pull Request Checklist
-
-Before submitting a Pull Request, ensure:
-
-- ✓ Successful build
-- ✓ Linting and tests pass
-- ✓ No secrets committed
-- ✓ Data model changes documented
-- ✓ Meaningful commit messages
-
----
-
-## 📝 Additional Notes
-
-This repository implements a realistic, production-oriented SaaS architecture with emphasis on:
-
-- **Maintainability**: Clear structure and documentation
-- **Automation**: Comprehensive CI/CD pipelines
-- **Operational Readiness**: Observability and monitoring capabilities
-- **Security**: Secure authentication and secret management
-
-The backend is the primary area of technical contribution and is documented in detail within this README.
-
----
-
-## 📞 Support
-
-For questions or issues, please refer to the project documentation or open an issue in the repository.
