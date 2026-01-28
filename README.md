@@ -13,7 +13,7 @@
 ### 1. Data Integrity & Compliance (GDPR Ready)
 
 - **Automated Soft Deletes:** Implemented via Prisma Extensions to ensure data is never lost accidentally, fulfilling legal data recovery requirements.
-- **Cascading Deactivation:** Custom transaction logic in `TeamsService` to handle multi-resource cleanup (Teams → Projects → Tasks) atomically.
+- **Cascading Deactivation:** Custom transaction l ogic in `TeamsService` to handle multi-resource cleanup (Teams → Projects → Tasks) atomically.
 
 ### 2. Advanced Security Architecture
 
