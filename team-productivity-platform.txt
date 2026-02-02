@@ -297,253 +297,1274 @@ SOFTWARE.
 
 ================================================================================
 File: README.md
-Size: 5.97 kB
+Size: 33.96 kB
 ================================================================================
 
-# Team Productivity Platform – Monorepo
+# Team Productivity Platform 🚀
 
-A SaaS-oriented application featuring a Backend-for-Frontend (BFF) architecture and modern frontend client. This documentation outlines the system structure, execution procedures, testing protocols, and validation standards following enterprise best practices.
+[![MIT License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+[![NestJS](https://img.shields.io/badge/backend-NestJS%2011-red?style=flat-square)](https://nestjs.com/)
+[![Next.js](https://img.shields.io/badge/frontend-Next.js%2016-black?style=flat-square)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/ui-React%2019-blue?style=flat-square)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/language-TypeScript%205-blue?style=flat-square)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/database-PostgreSQL%2015-336791?style=flat-square)](https://www.postgresql.org/)
+![Version](https://img.shields.io/badge/version-0.0.1--dev-yellow?style=flat-square)
+
+**Full-stack SaaS prototype** demonstrating enterprise architectural patterns and best practices.
+
+Built as a **learning project** to understand how professional applications are designed and engineered.
 
 ---
 
-## 📋 Repository Structure
+## 📋 Table of Contents
+
+- [Learning Objectives](#learning-objectives)
+- [Project Overview](#project-overview)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Key Features](#key-features)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Development Setup](#development-setup)
+- [Core Implementation](#core-implementation)
+- [Testing Strategy](#testing-strategy)
+- [What I Learned](#what-i-learned)
+- [Future Improvements](#future-improvements)
+- [License](#license)
+
+---
+
+## Learning Objectives
+
+This project was built to master the following areas of professional software engineering:
+
+### Security & Authentication
+
+- Password hashing with industry-standard algorithms (Argon2)
+- JWT-based authentication patterns
+- Token refresh strategies (access + refresh tokens)
+- Role-Based Access Control (RBAC)
+- HTTP-only cookies for secure token storage
+
+### Scalable Architecture
+
+- Backend-for-Frontend (BFF) pattern
+- Modular service architecture
+- Database design with migrations
+- API design principles (RESTful)
+- Real-time communication patterns (WebSocket)
+
+### Data Integrity & Compliance
+
+- Soft delete patterns for data recovery
+- Cascading transactions for data consistency
+- Audit trails and change tracking
+- GDPR-friendly data handling
+- Database constraints and validation
+
+### Production Readiness Concepts
+
+- Structured logging (JSON-based)
+- Metrics and monitoring
+- Health checks
+- Background job processing with retry logic
+- Rate limiting and throttling
+- Error handling strategies
+
+### Testing & Quality
+
+- Unit testing approaches
+- Integration testing with real databases
+- E2E testing scenarios
+- Code quality tooling (ESLint, Prettier)
+- Continuous integration basics
+
+### Real-Time Collaboration
+
+- WebSocket implementation
+- Broadcasting patterns
+- Client state synchronization
+- Presence tracking concepts
+
+---
+
+## Project Overview
+
+Team Productivity Platform is a **full-stack application** that demonstrates how to build a SaaS system with modern engineering practices. It provides functionality for teams to collaborate on projects and tasks with real-time updates.
+
+### Status
+
+- **Version:** 0.0.1 (Development)
+- **Production Ready:** No (Learning project)
+- **Status:** In Active Development
+- **Objective:** Educational demonstration of architectural patterns
+
+### What This Project Shows
+
+✅ How to structure a full-stack application  
+✅ How security is implemented in practice  
+✅ How to design scalable APIs  
+✅ How testing fits into development  
+✅ How to handle real-time features  
+✅ Understanding production patterns (without running in production)
+
+---
+
+## Architecture
+
+### System Design
 
 ```
-.
-├── bff-nestjs/           # Backend for Frontend (NestJS)
-├── frontend-next/        # Frontend (Next.js)
-├── .github/workflows/    # CI/CD & Quality Gates
-└── README.md
+┌──────────────────────────┐
+│   Browser / Client       │
+└────────────┬─────────────┘
+             │ HTTP/HTTPS + WebSocket
+    ┌────────▼──────────┐
+    │  Next.js 16       │
+    │  Frontend         │
+    │  (port 3000)      │
+    │                   │
+    │ • Zustand store   │
+    │ • React hooks     │
+    │ • TailwindCSS     │
+    │ • Radix UI        │
+    └────────┬──────────┘
+             │
+    ┌────────▼──────────────────┐
+    │  NestJS BFF (port 3001)   │
+    │                           │
+    │ Core Modules:             │
+    │ • Auth (JWT + Argon2)     │
+    │ • Teams                   │
+    │ • Projects                │
+    │ • Tasks                   │
+    │ • WebSocket Gateway       │
+    │ • Health Checks           │
+    │ • Metrics                 │
+    └────────┬──────────────────┘
+             │
+    ┌────────┴───────────┬────────────┐
+    │                    │            │
+    ▼                    ▼            ▼
+┌─────────────┐  ┌───────────┐  ┌──────────────┐
+│ PostgreSQL  │  │  Redis    │  │ Supabase S3  │
+│ (port 5432)│  │ (port 6379)  │              │
+│ Data Store  │  │ Cache+Jobs  │  File Storage│
+└─────────────┘  └───────────┘  └──────────────┘
+                      │
+                      ▼
+                ┌──────────────┐
+                │ BullMQ Jobs  │
+                │ Email Worker │
+                │ (Async)      │
+                └──────────────┘
 ```
 
-- **Backend (BFF)**: Core system component exposing APIs consumed by the frontend
-- **Frontend**: Next.js application communicating exclusively with the BFF
-- **CI/CD**: Automated pipelines enforcing code quality and stability
+### Authentication Flow Explained
 
----
+```
+1. User Login
+   POST /auth/signin { email, password }
 
-## 🏗️ Backend (BFF – NestJS)
+2. Password Validation
+   Compare input with Argon2 hash (why Argon2? Won Password Hashing Competition)
 
-### Technology Stack
+3. Token Generation
+   • Access Token: JWT, 15 minutes (for immediate requests)
+   • Refresh Token: JWT in httpOnly cookie, 7 days (for prolonged sessions)
 
-| Component         | Technology                  |
-| ----------------- | --------------------------- |
-| Runtime           | Node.js                     |
-| Framework         | NestJS                      |
-| Database          | PostgreSQL                  |
-| ORM               | Prisma                      |
-| Authentication    | JWT (Access/Refresh Tokens) |
-| Background Jobs   | BullMQ                      |
-| Monitoring        | Prometheus                  |
-| Logging           | Pino (structured)           |
-| API Documentation | Swagger/OpenAPI             |
+4. Frontend Storage
+   • Zustand state: user info + authentication flag
+   • Cookies: refresh_token (automatic, JS cannot access)
 
-### Core Responsibilities
+5. Subsequent Requests
+   Authorization: Bearer <accessToken>
+   Cookies: refresh_token (automatic)
 
-- Authentication and authorization management
-- User, team, and permission handling
-- API exposure for frontend consumption
-- Integration with external services (mail, storage, etc.)
-- Observability through structured logging and metrics
+6. Guard Validation
+   @AtGuard: Verify JWT signature and expiration
+   @RolesGuard: Check user role (USER/MANAGER/ADMIN)
 
----
+7. Token Refresh (When Expired)
+   POST /auth/refresh → New accessToken from refreshToken cookie
 
-## 🛠️ Local Development Requirements
-
-- **Node.js** (version aligned with CI)
-- **npm**
-- **PostgreSQL**
-- **Redis** (optional, depending on configuration)
-- **Docker** (recommended)
-
----
-
-## ⚙️ Environment Configuration
-
-The backend requires environment variables defined in `bff-nestjs/.env.example`.
-
-### Key Environment Variables
-
-```env
-DATABASE_URL          # PostgreSQL connection string
-AT_SECRET            # Access token secret
-RT_SECRET            # Refresh token secret
-COOKIE_SECRET        # Session cookie secret
-FRONTEND_URL         # Frontend application URL
-PORT                 # Server port
+Why this approach?
+✓ Access tokens are short-lived (harder to misuse if stolen)
+✓ Refresh tokens in httpOnly cookies (cannot be accessed by JavaScript/XSS)
+✓ Automatic refresh transparent to user
+✓ Logout clears both tokens
 ```
 
-### Setup Instructions
+---
+
+## Tech Stack
+
+### Why These Choices?
+
+#### Backend: NestJS 11.0.0
+
+**Why NestJS?**
+
+- Strong TypeScript support (end-to-end type safety)
+- Built-in modularity (clean architecture)
+- Dependency injection (professional patterns)
+- Guards, interceptors, decorators (production-ready features)
+- Great for learning architectural patterns
+
+**Key Dependencies:**
+
+```json
+{
+  "core": {
+    "nestjs": "11.0.0",
+    "typescript": "5.7.0",
+    "node": "18.x or 20.x LTS"
+  },
+  "database": {
+    "prisma": "5.22.0",
+    "postgresql": "15-alpine"
+  },
+  "authentication": {
+    "@nestjs/jwt": "11.0.0",
+    "passport-jwt": "4.0.1",
+    "argon2": "0.41.0"
+  },
+  "realtime": {
+    "socket.io": "4.8.0",
+    "@nestjs/websockets": "11.0.0"
+  },
+  "async_jobs": {
+    "bullmq": "5.67.1",
+    "@nestjs/bullmq": "11.0.4"
+  },
+  "observability": {
+    "nestjs-pino": "4.5.0",
+    "@willsoto/nestjs-prometheus": "6.0.0",
+    "@nestjs/terminus": "11.0.0"
+  },
+  "validation": {
+    "class-validator": "0.14.1",
+    "class-transformer": "0.5.1",
+    "joi": "17.13.0"
+  }
+}
+```
+
+#### Frontend: Next.js 16.1.1
+
+**Why Next.js?**
+
+- Server-side rendering capabilities
+- Built-in routing (App Router)
+- API routes (if needed)
+- Great TypeScript support
+- Perfect for learning modern React patterns
+
+**Key Dependencies:**
+
+```json
+{
+  "framework": {
+    "next": "16.1.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "typescript": "5.x"
+  },
+  "state_management": {
+    "zustand": "5.0.10"
+  },
+  "http_client": {
+    "axios": "1.13.2"
+  },
+  "forms": {
+    "react-hook-form": "7.71.1",
+    "@hookform/resolvers": "5.2.2",
+    "zod": "4.3.6"
+  },
+  "ui_components": {
+    "@radix-ui/*": "latest",
+    "tailwindcss": "4.x",
+    "lucide-react": "0.563.0",
+    "sonner": "2.0.7"
+  }
+}
+```
+
+#### Why Zustand for State Management?
+
+Zustand is minimal but powerful:
+
+- ✅ Simple API (no boilerplate)
+- ✅ TypeScript-friendly
+- ✅ Middleware support (persistence)
+- ✅ Great for learning state management concepts
+- ✅ Production-ready
+
+#### Infrastructure
+
+| Component          | Version   | Purpose           | Learning Value                            |
+| ------------------ | --------- | ----------------- | ----------------------------------------- |
+| **PostgreSQL**     | 15-alpine | Relational DB     | Understand SQL, schema design, migrations |
+| **Redis**          | 7-alpine  | Cache + Job Queue | Learn async patterns, caching strategies  |
+| **Docker Compose** | 3.8       | Local environment | Understand containerization basics        |
+
+---
+
+## Key Features
+
+### 1. Security Implementation
+
+What I built to understand security:
+
+#### Password Hashing (Argon2)
+
+```typescript
+// Why Argon2?
+// - Winner of Password Hashing Competition (2015)
+// - Memory-hard algorithm (resistant to GPU attacks)
+// - Configurable CPU/memory costs
+// - Industry standard for modern applications
+
+const hash = await argon2.hash(password, {
+  type: argon2.argon2id,
+  memoryCost: 2 ** 16, // 65MB
+  timeCost: 3, // 3 iterations
+  parallelism: 1,
+});
+```
+
+#### JWT Authentication Pattern
+
+```
+Why split tokens?
+- Access Token (15m): Used for every request, short-lived
+- Refresh Token (7d): Longer-lived, only used when access expires
+- If access token stolen: Limited window of misuse
+- If refresh token stolen: Still httpOnly (JS cannot access)
+```
+
+#### Role-Based Access Control
+
+```typescript
+// Demonstrates permission layers
+enum Role {
+  USER = 'USER',           // Basic access
+  MANAGER = 'MANAGER',     // Can manage users
+  ADMIN = 'ADMIN'          // Full system access
+}
+
+@Roles(Role.ADMIN)
+@Get('system/admin-panel')
+getAdminPanel() {
+  // Only admins can access
+}
+```
+
+### 2. Data Integrity Patterns
+
+What I learned about keeping data safe:
+
+#### Soft Deletes (GDPR Compliance)
+
+```typescript
+// Instead of: DELETE FROM users WHERE id = 1
+// Use: UPDATE users SET deletedAt = now() WHERE id = 1
+
+// Benefits:
+// ✓ Data recovery (if needed)
+// ✓ Audit trails (know when deleted)
+// ✓ GDPR compliance (data still exists, just inactive)
+// ✓ Referential integrity (no broken foreign keys)
+
+const tasks = await prisma.task.findMany({
+  where: { deletedAt: null }, // Only show active tasks
+});
+```
+
+#### Cascading Transactions
+
+```typescript
+// When deleting a team:
+// Team → Projects → Tasks → Attachments
+// All deleted atomically (all succeed or all rollback)
+
+// Why matter?
+// ✓ No orphaned records
+// ✓ Consistency guaranteed
+// ✓ Atomic operations (no partial states)
+```
+
+### 3. Scalability Concepts
+
+What I understood about building scalable systems:
+
+#### Async Job Processing (BullMQ)
+
+```typescript
+// Email sending example:
+// Instead of: await sendEmail(...) // Slow, blocks request
+// Use: queue.add('send-email', data) // Fast, async
+
+// Benefits:
+// ✓ Request completes immediately
+// ✓ Email sends in background
+// ✓ Automatic retries (3 attempts with exponential backoff)
+// ✓ Resilient (survives crashes)
+```
+
+#### Connection Pooling
+
+```typescript
+// Database connections are expensive
+// Pool them for reuse:
+DATABASE_POOL_SIZE = 10; // Reuse 10 connections
+
+// Why matter?
+// ✓ Each connection has overhead
+// ✓ Pooling = better performance
+// ✓ Prevents "too many connections" errors
+```
+
+#### Rate Limiting
+
+```typescript
+// Prevent abuse: 20 requests per 60 seconds per IP
+THROTTLE_LIMIT = 20;
+THROTTLE_TTL = 60000;
+
+// Why matter?
+// ✓ Protects against DoS attacks
+// ✓ Fair resource usage
+// ✓ Prevents spam
+```
+
+### 4. Real-Time Features
+
+What I learned about WebSocket patterns:
+
+#### Socket.IO Gateway
+
+```typescript
+// When task is created:
+@SubscribeMessage('taskCreated')
+handleTaskCreated(data) {
+  // Notify all connected users
+  this.server.emit('taskCreated', data);
+}
+
+// Why matter?
+// ✓ Users see updates instantly
+// ✓ Better UX than polling
+// ✓ Scalable (WebSocket is efficient)
+// ✓ Supports presence tracking
+```
+
+### 5. Observability & Monitoring
+
+What I implemented to understand production readiness:
+
+#### Structured Logging (Pino)
+
+```json
+{
+  "level": "info",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "module": "AuthService",
+  "message": "User login successful",
+  "userId": "123",
+  "email": "user@example.com",
+  "duration_ms": 45
+}
+```
+
+Why JSON logs?
+✓ Machine-parseable (not just human-readable text)
+✓ Can aggregate and search in ELK/Datadog
+✓ Structured context (userId, duration, etc.)
+
+#### Metrics (Prometheus)
+
+```
+http_requests_total{method="POST", status="201"} 42
+http_request_duration_seconds_bucket{le="0.1", method="GET"} 15
+nodejs_heap_size_bytes 256000000
+```
+
+#### Health Checks
+
+```http
+GET /health
+Response: {
+  "status": "ok",
+  "database": { "status": "up" },
+  "redis": { "status": "up" }
+}
+```
+
+---
+
+## Requirements
+
+### Minimum System Setup
+
+- **Node.js:** 18.x LTS or 20.x LTS
+- **npm:** 9.x or higher
+- **PostgreSQL:** 15+ (Docker or local)
+- **Redis:** 7+ (Docker or local, recommended)
+- **Git:** For version control
+
+### Recommended for Development
+
+- **Docker & Docker Compose:** Simplest full setup
+- **VS Code:** With ESLint + Prettier extensions
+- **Postman/Insomnia:** API testing tool
+
+---
+
+## Quick Start
+
+### Option 1: Docker (Recommended)
 
 ```bash
-# Copy environment template
+# 1. Clone repository
+git clone https://github.com/Nikolaspc/team-productivity-platform.git
+cd team-productivity-platform
+
+# 2. Create environment file
 cp bff-nestjs/.env.example bff-nestjs/.env
+# Defaults work for local development
 
-# Update variables with your local values
+# 3. Start all services
+docker-compose up --build
+
+# 4. In another terminal, run database migrations
+docker-compose exec tpp-bff npx prisma migrate deploy
+
+# ✅ Services ready:
+# Frontend:         http://localhost:3000
+# Backend:          http://localhost:3001
+# API Documentation: http://localhost:3001/api/docs
+# Maildev (test):   http://localhost:1080
+# Metrics:          http://localhost:3001/metrics
 ```
 
-⚠️ **Security Note**: Production secrets must be managed through a secure secret management solution (AWS Secrets Manager, HashiCorp Vault, etc.)
-
----
-
-## 🚀 Running the Backend Locally
-
-### Installation & Setup
+**Verify everything is running:**
 
 ```bash
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f tpp-bff
+docker-compose logs -f tpp-redis
+
+# Stop services
+docker-compose down
+```
+
+### Option 2: Local Development (Without Docker)
+
+```bash
+# 1. Clone repository
+git clone https://github.com/Nikolaspc/team-productivity-platform.git
+cd team-productivity-platform
+
+# 2. Backend setup
 cd bff-nestjs
+cp .env.example .env
 npm ci
-npx prisma generate
 npx prisma migrate deploy
-```
 
-### Start Development Server
-
-```bash
+# 3. Start backend (Terminal 1)
 npm run start:dev
-```
 
-The backend will be accessible at the configured `PORT`.
+# 4. Frontend setup (Terminal 2)
+cd frontend-next
+npm ci
+npm run dev
 
-### Database Seeding (Optional)
-
-```bash
-npm run prisma:seed
+# ✅ Access: http://localhost:3000
 ```
 
 ---
 
-## 🗄️ Database & Migrations
+## Project Structure
 
-The data model is defined in `prisma/schema.prisma`. All schema modifications are version-controlled using Prisma migrations.
+### Backend Organization
 
-### Applying Migrations
-
-```bash
-# Deploy pending migrations
-npx prisma migrate deploy
-
-# Create a new migration
-npx prisma migrate dev --name <migration_name>
+```
+bff-nestjs/
+├── src/
+│   ├── auth/                    # JWT + Argon2 authentication
+│   │   ├── auth.controller.ts   # Endpoints
+│   │   ├── auth.service.ts      # Business logic
+│   │   ├── guards/              # JWT validation
+│   │   └── dto/                 # Request/response schemas
+│   │
+│   ├── modules/
+│   │   ├── teams/               # Team management
+│   │   ├── projects/            # Project management
+│   │   ├── tasks/               # Task management + WebSocket
+│   │   ├── invitations/         # Email invitations
+│   │   ├── notifications/       # WebSocket gateway
+│   │   ├── storage/             # File uploads (S3)
+│   │   ├── mail/                # Email service + BullMQ
+│   │   ├── dashboard/           # Analytics/reporting
+│   │   └── health/              # Health checks
+│   │
+│   ├── common/
+│   │   ├── guards/              # RBAC validation
+│   │   ├── decorators/          # Custom decorators
+│   │   ├── filters/             # Error handling
+│   │   └── interceptors/        # Request/response manipulation
+│   │
+│   ├── prisma/                  # Database connection
+│   ├── config/                  # Configuration
+│   └── main.ts                  # Application bootstrap
+│
+├── prisma/
+│   ├── schema.prisma            # Database schema (learning point)
+│   ├── migrations/              # Schema change history
+│   └── seed.ts                  # Test data
+│
+├── test/                        # E2E tests
+├── package.json
+└── Dockerfile
 ```
 
-This approach ensures consistency across development, staging, and production environments.
+### Frontend Organization
+
+```
+frontend-next/
+├── src/
+│   ├── app/                     # Next.js App Router
+│   │   ├── auth/                # Login/signup pages
+│   │   ├── dashboard/           # Protected area
+│   │   ├── layout.tsx           # Root layout
+│   │   └── error.tsx            # Error boundary
+│   │
+│   ├── components/              # Reusable React components
+│   │   ├── auth/                # Auth forms
+│   │   ├── teams/               # Team UI
+│   │   ├── projects/            # Project UI
+│   │   ├── tasks/               # Task UI
+│   │   └── common/              # Shared components
+│   │
+│   ├── store/                   # Zustand stores (learning point)
+│   │   ├── authStore.ts         # Auth state + persistence
+│   │   ├── teamsStore.ts
+│   │   ├── projectsStore.ts
+│   │   └── tasksStore.ts
+│   │
+│   ├── services/                # API communication
+│   │   ├── api.ts               # Axios + interceptors
+│   │   ├── auth.service.ts
+│   │   ├── teams.service.ts
+│   │   └── socket.service.ts    # WebSocket client
+│   │
+│   ├── hooks/                   # Custom React hooks
+│   │   ├── useAuth.ts           # Authentication
+│   │   ├── useTeams.ts          # Data fetching
+│   │   └── useNotifications.ts  # WebSocket listener
+│   │
+│   ├── types/                   # TypeScript interfaces
+│   ├── utils/                   # Helper functions
+│   ├── middleware.ts            # Route protection
+│   └── globals.css              # TailwindCSS
+│
+├── public/                      # Static files
+├── package.json
+└── Dockerfile
+```
 
 ---
 
-## 🧪 Testing
+## Development Setup
 
-### Test Coverage
+### Environment Configuration
 
-- Unit tests
-- Integration tests
-- End-to-end (e2e) tests
-
-### Running Tests Locally
+#### Backend (.env)
 
 ```bash
-# Unit and integration tests
+# Application
+NODE_ENV=development
+PORT=3001
+FRONTEND_URL="http://localhost:3000"
+LOG_LEVEL="debug"
+
+# Database
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/productivity_db?schema=public"
+DATABASE_POOL_SIZE=10
+
+# JWT Secrets (generate with: openssl rand -base64 32)
+AT_SECRET="your-32-character-secret-here"
+RT_SECRET="your-32-character-secret-here"
+COOKIE_SECRET="your-32-character-secret-here"
+AT_EXPIRES_IN="15m"
+RT_EXPIRES_IN="7d"
+
+# Redis
+REDIS_HOST="127.0.0.1"
+REDIS_PORT=6379
+REDIS_PASSWORD=""
+
+# Email (use Ethereal for testing)
+MAIL_HOST="smtp.ethereal.email"
+MAIL_PORT=587
+MAIL_USER="your-ethereal-email@ethereal.email"
+MAIL_PASS="your-ethereal-password"
+MAIL_FROM='"Team Productivity" <no-reply@app.local>'
+
+# Storage (Supabase S3)
+STORAGE_ENDPOINT="https://your-project.storage.supabase.co/storage/v1/s3"
+STORAGE_REGION="eu-central-1"
+STORAGE_ACCESS_KEY="your-key"
+STORAGE_SECRET_KEY="your-secret"
+STORAGE_BUCKET="attachments"
+STORAGE_FORCE_PATH_STYLE=true
+
+# Rate Limiting
+THROTTLE_TTL=60000
+THROTTLE_LIMIT=20
+```
+
+#### Frontend (.env.local)
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+```
+
+### Generate Secure Secrets
+
+```bash
+# Generate three 32+ character secrets
+openssl rand -base64 32
+openssl rand -base64 32
+openssl rand -base64 32
+
+# Add results to AT_SECRET, RT_SECRET, COOKIE_SECRET in .env
+```
+
+---
+
+## Core Implementation
+
+### Authentication Flow Implementation
+
+```typescript
+// auth.service.ts - How passwords are hashed and verified
+async hashPassword(password: string): Promise<string> {
+  return argon2.hash(password, {
+    type: argon2.argon2id,
+    memoryCost: 2 ** 16,
+    timeCost: 3,
+    parallelism: 1,
+  });
+}
+
+async verifyPassword(password: string, hash: string): Promise<boolean> {
+  return argon2.verify(hash, password);
+}
+```
+
+### Frontend State Management (Zustand)
+
+```typescript
+// store/authStore.ts - How user state persists
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      isAuthenticated: false,
+
+      setAuth: (user, token) => {
+        Cookies.set('access_token', token, {
+          expires: 7,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          httpOnly: true,
+        });
+        set({ user, isAuthenticated: true });
+      },
+
+      logout: () => {
+        Cookies.remove('access_token');
+        set({ user: null, isAuthenticated: false });
+        window.location.href = '/auth/login';
+      },
+    }),
+    {
+      name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
+);
+```
+
+### API Integration (Axios)
+
+```typescript
+// services/api.ts - How frontend communicates with backend
+const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  withCredentials: true,
+});
+
+// Add token to every request
+apiClient.interceptors.request.use((config) => {
+  const token = Cookies.get('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Handle token refresh on 401
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Try refresh token flow
+      // ... (implementation)
+    }
+    return Promise.reject(error);
+  },
+);
+```
+
+### Database Schema (Prisma)
+
+```prisma
+// prisma/schema.prisma - Database design decisions
+
+model User {
+  id        Int     @id @default(autoincrement())
+  email     String  @unique
+  password  String  // Stored as Argon2 hash
+  name      String?
+  role      Role    @default(USER)
+
+  teams     TeamMember[]
+  tasks     Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft delete
+}
+
+model Team {
+  id        Int     @id @default(autoincrement())
+  name      String
+
+  members   TeamMember[]
+  projects  Project[]
+
+  createdAt DateTime @default(now())
+  deletedAt DateTime? // Soft delete
+}
+
+model Task {
+  id          Int         @id @default(autoincrement())
+  title       String
+  status      TaskStatus  @default(TODO)
+  projectId   Int
+  assigneeId  Int?
+
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    User?       @relation(fields: [assigneeId], references: [id])
+
+  createdAt   DateTime    @default(now())
+  deletedAt   DateTime?   // Soft delete
+}
+
+// Enums demonstrate understanding of domain modeling
+enum Role {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+```
+
+---
+
+## Testing Strategy
+
+### How I Approach Testing
+
+```bash
+# Unit tests - Test individual functions in isolation
 npm run test
 
-# End-to-end tests
-npm run test:e2e
-
-# Watch mode
+# Watch mode - Useful during development
 npm run test:watch
+
+# Coverage report - See what's tested
+npm run test:cov
+
+# Integration tests - Test with real database
+npm run test:int
+
+# E2E tests - Test complete user flows
+npm run test:e2e
 ```
 
-**Note**: Tests are automatically executed as part of the CI quality gate on every Pull Request.
+### Example Unit Test
+
+```typescript
+// auth.service.spec.ts - Testing password hashing
+
+describe('AuthService - Password Hashing', () => {
+  let service: AuthService;
+
+  beforeEach(async () => {
+    // Setup test environment
+  });
+
+  describe('hashPassword', () => {
+    it('should hash password with Argon2', async () => {
+      const password = 'MyPassword123!';
+      const hash = await service.hashPassword(password);
+
+      // Verify it's actually hashed (not plaintext)
+      expect(hash).not.toBe(password);
+      expect(hash.length).toBeGreaterThan(20);
+    });
+
+    it('should be different hash for same password', async () => {
+      const password = 'MyPassword123!';
+      const hash1 = await service.hashPassword(password);
+      const hash2 = await service.hashPassword(password);
+
+      // Different salt = different hash (even for same password)
+      expect(hash1).not.toBe(hash2);
+    });
+  });
+
+  describe('verifyPassword', () => {
+    it('should verify correct password', async () => {
+      const password = 'MyPassword123!';
+      const hash = await service.hashPassword(password);
+      const isValid = await service.verifyPassword(password, hash);
+
+      expect(isValid).toBe(true);
+    });
+
+    it('should reject incorrect password', async () => {
+      const password = 'MyPassword123!';
+      const hash = await service.hashPassword(password);
+      const isValid = await service.verifyPassword('WrongPassword', hash);
+
+      expect(isValid).toBe(false);
+    });
+  });
+});
+```
+
+### What This Tests Show
+
+✅ **Unit tests demonstrate:**
+
+- Understanding of what to test
+- How to write testable code
+- Knowledge of edge cases
+- Professional testing practices
+
+✅ **Integration tests demonstrate:**
+
+- Understanding of database interactions
+- Transaction handling
+- Real-world data scenarios
+
+✅ **E2E tests demonstrate:**
+
+- Complete user flows
+- System integration
+- Realistic testing scenarios
 
 ---
 
-## 📊 Observability
+## What I Learned
 
-### Logging
+### Technical Insights
 
-Structured logging is implemented using **Pino**, providing:
+1. **Security is Complex**
 
-- Machine-readable log format
-- Request/response tracing
-- Error context and stack traces
+   - Not just encryption, but design patterns
+   - Token strategy matters (access vs refresh)
+   - Soft deletes for compliance
+   - Rate limiting for abuse prevention
 
-### Metrics
+2. **Architecture Decisions Have Trade-offs**
 
-**Prometheus** metrics are exposed at the `/metrics` endpoint, supporting:
+   - BFF pattern (complexity vs flexibility)
+   - Soft deletes (storage vs recovery)
+   - Async jobs (performance vs eventual consistency)
+   - WebSocket vs polling (overhead vs UX)
 
-- Performance monitoring
-- Operational visibility
-- Alerting and dashboards
+3. **Real-time Systems Are Harder Than Expected**
 
-These components enable effective debugging and monitoring in staging and production environments.
+   - State synchronization challenges
+   - Connection management
+   - Message ordering
+   - Scalability considerations
 
----
+4. **Testing Must Be Part of Design**
 
-## 🔄 CI/CD & Quality Gates
+   - Hard to test bad architecture
+   - Better to test from start than add later
+   - Different test types have different values
+   - Coverage metrics don't tell full story
 
-GitHub Actions pipelines validate each Pull Request:
+5. **Observability Matters**
+   - Logs need to be queryable
+   - Metrics help understand system behavior
+   - Health checks prevent cascading failures
 
-- ✓ Dependency installation (`npm ci`)
-- ✓ Code linting
-- ✓ Build verification
-- ✓ Test execution (unit, integration, e2e)
-- ✓ Security auditing (`npm audit`)
+### Professional Lessons
 
-Pipelines are triggered automatically on Pull Requests to ensure consistent code quality standards.
+✅ **Clean code is a skill learned gradually**  
+✅ **Documentation is as important as code**  
+✅ **Security requires continuous thinking**  
+✅ **Scalability considerations start at design**  
+✅ **Testing is an investment, not overhead**  
+✅ **Monitoring prevents fires, not puts them out**
 
----
+### What I'd Do Differently
 
-## 🎨 Frontend (Next.js)
+If I rebuilt this project:
 
-The frontend application is located in `frontend-next/`.
-
-### Key Characteristics
-
-- Communicates exclusively with the backend BFF
-- Independent development lifecycle
-- Separate dependency management
-
-For frontend-specific documentation, refer to `frontend-next/README.md`.
-
----
-
-## 📈 Development Workflow
-
-### Branch Strategy
-
-| Branch      | Purpose                         |
-| ----------- | ------------------------------- |
-| `main`      | Stable, production-ready code   |
-| `develop`   | Integration branch for features |
-| `feature/*` | Feature development branches    |
-
-### Pull Request Checklist
-
-Before submitting a Pull Request, ensure:
-
-- ✓ Successful build
-- ✓ Linting and tests pass
-- ✓ No secrets committed
-- ✓ Data model changes documented
-- ✓ Meaningful commit messages
+1. **Start with detailed schema design** (I refined it during development)
+2. **Write tests from the beginning** (easier than retrofitting)
+3. **Document architectural decisions** (helps future me and teammates)
+4. **More granular error handling** (learned this the hard way)
+5. **Performance testing earlier** (not just after "done")
 
 ---
 
-## 📝 Additional Notes
+## Future Improvements
 
-This repository implements a realistic, production-oriented SaaS architecture with emphasis on:
+### Short Term (Learning)
 
-- **Maintainability**: Clear structure and documentation
-- **Automation**: Comprehensive CI/CD pipelines
-- **Operational Readiness**: Observability and monitoring capabilities
-- **Security**: Secure authentication and secret management
+- [ ] More comprehensive integration tests
+- [ ] API versioning strategy
+- [ ] Request validation at multiple layers
+- [ ] Better error codes and messages
+- [ ] More detailed API documentation
 
-The backend is the primary area of technical contribution and is documented in detail within this README.
+### Medium Term (Features)
+
+- [ ] Task comments and discussions
+- [ ] Dashboard with analytics
+- [ ] Advanced filtering and search
+- [ ] Task templates and bulk operations
+- [ ] Custom fields per team
+
+### Long Term (Scaling)
+
+- [ ] Event sourcing for audit trail
+- [ ] GraphQL API option
+- [ ] Mobile application
+- [ ] Offline-first capabilities
+- [ ] Third-party integrations (Slack, GitHub)
 
 ---
 
-## 📞 Support
+## Key Commands
 
-For questions or issues, please refer to the project documentation or open an issue in the repository.
+### Development
+
+```bash
+# Backend
+cd bff-nestjs
+npm run start:dev        # Watch mode
+npm run build            # Compile TypeScript
+npm run lint             # Check code quality
+npm run format           # Auto-format code
+npm run test             # Run unit tests
+npm run test:e2e         # Run E2E tests
+
+# Database
+npx prisma generate     # Generate Prisma client
+npx prisma migrate dev --name <name>  # Create migration
+npx prisma migrate deploy              # Apply migrations
+npx prisma db seed                     # Populate test data
+npx prisma studio                      # GUI database browser
+
+# Frontend
+cd frontend-next
+npm run dev              # Development server
+npm run build            # Production build
+npm run lint             # Check code
+npm run format           # Format code
+```
+
+### Docker
+
+```bash
+# Start all services
+docker-compose up --build
+
+# View logs
+docker-compose logs -f tpp-bff
+docker-compose logs -f tpp-redis
+
+# Access services
+docker-compose exec tpp-db psql -U postgres -d productivity_db
+docker-compose exec tpp-redis redis-cli
+
+# Stop
+docker-compose down
+```
+
+---
+
+## How to Use This For Learning
+
+### If You're Learning Backend
+
+1. Study `bff-nestjs/src/auth/` for security patterns
+2. Look at `bff-nestjs/prisma/schema.prisma` for database design
+3. Review guards and interceptors for middleware patterns
+4. Check test files for testing approaches
+
+### If You're Learning Frontend
+
+1. Look at `frontend-next/src/store/authStore.ts` for state management
+2. Review `frontend-next/src/services/api.ts` for API integration
+3. Check `frontend-next/src/middleware.ts` for route protection
+4. Study form components for validation patterns
+
+### If You're Learning Full-Stack
+
+1. Understand the separation of concerns (BFF pattern)
+2. See how frontend and backend communicate
+3. Learn database design thinking
+4. Understand security at each layer
+
+---
+
+## License
+
+MIT License - Free for personal, commercial, and educational use.
+
+See [LICENSE](LICENSE) for complete terms.
+
+---
+
+## Questions For Interviews
+
+### Prepare For These Common Questions
+
+**"Why did you build this?"**
+
+> To understand how professional SaaS applications are designed and engineered. I wanted hands-on experience with security patterns, real-time features, testing, and production-readiness concepts.
+
+**"What was the hardest part?"**
+
+> Understanding token refresh strategies and state synchronization in real-time features. I learned that simple concepts have subtle complexities.
+
+**"What would you do differently?"**
+
+> Start with detailed schema design and write tests from day one. Also, I'd document architectural decisions as I make them.
+
+**"What did you learn from this?"**
+
+> That professional software development is about trade-offs, not perfect solutions. Every choice has consequences you need to understand.
+
+**"Why these technologies?"**
+
+> NestJS for strong typing and architecture patterns, Next.js for modern React practices, Prisma for type-safe ORM. All are industry-standard for learning professional patterns.
+
+**"Is this production-ready?"**
+
+> No, it's v0.0.1. It demonstrates production patterns and concepts, but would need security audits, performance testing, and operational setup before handling real users.
+
+---
+
+## About Me (For Interviews)
+
+This project demonstrates:
+
+- ✅ Ability to learn independently
+- ✅ Understanding of professional patterns
+- ✅ Critical thinking about trade-offs
+- ✅ Awareness of what I don't know
+- ✅ Initiative to learn beyond requirements
+- ✅ Capacity to handle complexity
+
+---
+
+## Repository Structure
+
+This repository is organized as follows:
+
+```
+team-productivity-platform/
+├── README.md                      # This file - Project overview
+├── LICENSE                        # MIT License
+├── .gitignore                     # Git ignore rules
+│
+├── bff-nestjs/                    # Backend (NestJS)
+│   ├── src/
+│   ├── prisma/
+│   ├── test/
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── Dockerfile
+│   └── .env.example
+│
+├── frontend-next/                 # Frontend (Next.js)
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── next.config.mjs
+│   ├── Dockerfile
+│   └── .env.example
+│
+├── prisma/                        # Database schema
+│   ├── schema.prisma
+│   └── migrations/
+│
+├── docker-compose.yml             # Local development stack
+├── docker-compose.prod.yml        # Production stack (optional)
+│
+├── docs/                          # Additional documentation
+│   ├── ARCHITECTURE.md
+│   ├── API.md
+│   └── DEPLOYMENT.md
+│
+└── .github/                       # GitHub specific
+    └── workflows/                 # CI/CD pipelines
+```
+
+## Support & Community
+
+- **Issues:** [GitHub Issues](https://github.com/Nikolaspc/team-productivity-platform/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/Nikolaspc/team-productivity-platform/discussions)
+- **Security:** See [SECURITY.md](SECURITY.md) for reporting security issues
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and updates.
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+**Last Updated:** January 2026  
+**Version:** 0.0.1 (Development)  
+**Status:** In Active Development for Learning  
+**License:** MIT
 
 
 ================================================================================
@@ -7827,45 +8848,9 @@ export default tseslint.config(
 
 ================================================================================
 File: frontend-next/README.md
-Size: 1.45 kB
+Size: 0 B
 ================================================================================
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 
 ================================================================================
