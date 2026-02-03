@@ -41,11 +41,7 @@ export class AuthService {
       },
     });
 
-    const tokens = await this.getTokens(
-      newUser.id,
-      newUser.email,
-      newUser.role,
-    );
+    const tokens = await this.getTokens(newUser.id, newUser.email, newUser.role);
     await this.updateRtHash(newUser.id, tokens.refresh_token);
 
     return this.finalizeSession(res, tokens);
@@ -56,12 +52,14 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    if (!user)
+    if (!user) {
       throw new ForbiddenException('Access Denied: Invalid credentials');
+    }
 
     const passwordMatches = await argon2.verify(user.password, dto.password);
-    if (!passwordMatches)
+    if (!passwordMatches) {
       throw new ForbiddenException('Access Denied: Invalid credentials');
+    }
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.updateRtHash(user.id, tokens.refresh_token);
@@ -92,12 +90,14 @@ export class AuthService {
       where: { id: userId },
     });
 
-    if (!user || !user.refreshTokenHash)
+    if (!user?.refreshTokenHash) {
       throw new ForbiddenException('Access Denied: Session expired');
+    }
 
     const rtMatches = await argon2.verify(user.refreshTokenHash, rt);
-    if (!rtMatches)
+    if (!rtMatches) {
       throw new ForbiddenException('Access Denied: Invalid token');
+    }
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.updateRtHash(user.id, tokens.refresh_token);
@@ -141,10 +141,7 @@ export class AuthService {
     }
   }
 
-  private finalizeSession(
-    res: Response,
-    tokens: { access_token: string; refresh_token: string },
-  ) {
+  private finalizeSession(res: Response, tokens: { access_token: string; refresh_token: string }) {
     const isProduction = this.config.get<string>('NODE_ENV') === 'production';
 
     res.cookie('refresh_token', tokens.refresh_token, {

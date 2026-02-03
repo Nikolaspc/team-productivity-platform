@@ -13,11 +13,7 @@ describe('TeamMemberGuard', () => {
     },
   };
 
-  const createMockContext = (
-    params: any,
-    body: any,
-    userId: number,
-  ): ExecutionContext =>
+  const createMockContext = (params: any, body: any, userId: number): ExecutionContext =>
     ({
       switchToHttp: () => ({
         getRequest: () => ({
@@ -30,10 +26,7 @@ describe('TeamMemberGuard', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TeamMemberGuard,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [TeamMemberGuard, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     guard = module.get<TeamMemberGuard>(TeamMemberGuard);
@@ -47,7 +40,7 @@ describe('TeamMemberGuard', () => {
   });
 
   it('should allow access if membership exists', async () => {
-    (mockPrisma.extended.teamMember.findFirst as jest.Mock).mockResolvedValue({
+    mockPrisma.extended.teamMember.findFirst.mockResolvedValue({
       id: 1,
     });
     const context = createMockContext({ teamId: '5' }, {}, 1);
@@ -58,13 +51,9 @@ describe('TeamMemberGuard', () => {
   });
 
   it('should throw ForbiddenException if membership does not exist', async () => {
-    (mockPrisma.extended.teamMember.findFirst as jest.Mock).mockResolvedValue(
-      null,
-    );
+    mockPrisma.extended.teamMember.findFirst.mockResolvedValue(null);
     const context = createMockContext({}, { teamId: 5 }, 1); // Prueba desde el body
 
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
   });
 });

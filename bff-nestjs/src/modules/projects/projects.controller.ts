@@ -13,12 +13,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { GetCurrentUserId, GetCurrentUserRole } from '../../common/decorators';
 import { Role, TeamRole } from '@prisma/client';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('Projects')
 @ApiBearerAuth('access-token')
@@ -29,10 +24,7 @@ export class ProjectsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new project' })
-  create(
-    @Param('teamId', ParseIntPipe) teamId: number,
-    @Body() dto: CreateProjectDto,
-  ) {
+  create(@Param('teamId', ParseIntPipe) teamId: number, @Body() dto: CreateProjectDto) {
     return this.projectsService.create(teamId, dto);
   }
 

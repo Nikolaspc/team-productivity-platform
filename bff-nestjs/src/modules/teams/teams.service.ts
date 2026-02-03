@@ -24,9 +24,7 @@ export class TeamsService {
         },
       });
 
-      this.logger.log(
-        `Team created: ${team.name} (ID: ${team.id}) by User: ${userId}`,
-      );
+      this.logger.log(`Team created: ${team.name} (ID: ${team.id}) by User: ${userId}`);
       return team;
     });
   }

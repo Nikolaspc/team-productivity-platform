@@ -23,22 +23,18 @@ export class DashboardService {
       },
     });
 
-    if (!team) throw new NotFoundException(`Team with ID ${teamId} not found`);
+    if (!team) {
+      throw new NotFoundException(`Team with ID ${teamId} not found`);
+    }
 
     const now = new Date();
     const projectStats = team.projects.map((project) => {
       const totalTasks = project._count.tasks;
-      const completedTasks = project.tasks.filter(
-        (t) => t.status === TaskStatus.DONE,
-      ).length;
+      const completedTasks = project.tasks.filter((t) => t.status === TaskStatus.DONE).length;
 
-      const progress =
-        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
       const overdueTasks = project.tasks.filter(
-        (t) =>
-          t.status !== TaskStatus.DONE &&
-          t.dueDate &&
-          new Date(t.dueDate) < now,
+        (t) => t.status !== TaskStatus.DONE && t.dueDate && new Date(t.dueDate) < now,
       ).length;
 
       return {

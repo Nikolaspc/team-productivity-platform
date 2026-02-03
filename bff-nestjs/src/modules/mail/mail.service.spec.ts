@@ -14,11 +14,7 @@ describe('MailService', () => {
 
   it('should log and return true when sending invitation', async () => {
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    const result = await service.sendInvitationEmail(
-      'test@test.com',
-      'Team A',
-      'token123',
-    );
+    const result = await service.sendInvitationEmail('test@test.com', 'Team A', 'token123');
 
     expect(result).toBe(true);
     expect(consoleSpy).toHaveBeenCalled();

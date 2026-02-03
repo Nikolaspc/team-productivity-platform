@@ -39,9 +39,7 @@ export class TasksService {
     });
 
     if (!project) {
-      throw new ForbiddenException(
-        'Project not found or no permission to add tasks',
-      );
+      throw new ForbiddenException('Project not found or no permission to add tasks');
     }
 
     const task = await this.prisma.extended.task.create({
@@ -57,15 +55,9 @@ export class TasksService {
 
     // English: Notify via WebSocket. Wrap in try-catch to prevent main flow failure
     try {
-      this.notifications.notifyTaskUpdate(
-        project.team.id,
-        task.title,
-        'created',
-      );
+      this.notifications.notifyTaskUpdate(project.team.id, task.title, 'created');
     } catch (error) {
-      this.logger.warn(
-        `Failed to send WebSocket notification for task ${task.id}`,
-      );
+      this.logger.warn(`Failed to send WebSocket notification for task ${task.id}`);
     }
 
     return task;
@@ -165,9 +157,7 @@ export class TasksService {
       try {
         await this.storageService.deleteFile(attachment.url);
       } catch (error) {
-        this.logger.warn(
-          `Failed to delete attachment file ${attachment.id} from storage`,
-        );
+        this.logger.warn(`Failed to delete attachment file ${attachment.id} from storage`);
       }
     }
 

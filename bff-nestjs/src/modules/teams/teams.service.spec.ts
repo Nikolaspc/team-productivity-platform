@@ -41,15 +41,13 @@ describe('TeamsService', () => {
       const mockTeam = { id: 10, name: mockTeamDto.name };
 
       // English: Mocking the transaction flow
-      (prisma.extended.$transaction as jest.Mock).mockImplementation(
-        async (callback) => {
-          const tx = {
-            team: { create: jest.fn().mockResolvedValue(mockTeam) },
-            teamMember: { create: jest.fn().mockResolvedValue({}) },
-          };
-          return callback(tx);
-        },
-      );
+      (prisma.extended.$transaction as jest.Mock).mockImplementation(async (callback) => {
+        const tx = {
+          team: { create: jest.fn().mockResolvedValue(mockTeam) },
+          teamMember: { create: jest.fn().mockResolvedValue({}) },
+        };
+        return callback(tx);
+      });
 
       const result = await service.create(mockUserId, mockTeamDto);
 

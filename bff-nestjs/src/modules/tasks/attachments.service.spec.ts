@@ -2,10 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AttachmentsService } from './attachments.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../../storage/storage.service';
-import {
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 
 describe('AttachmentsService', () => {
   let service: AttachmentsService;
@@ -77,29 +74,23 @@ describe('AttachmentsService', () => {
 
       const result = await service.create(101, fileData);
 
-      expect(mockPrismaService.extended.attachment.create).toHaveBeenCalledWith(
-        {
-          data: {
-            ...fileData,
-            taskId: 101,
-          },
+      expect(mockPrismaService.extended.attachment.create).toHaveBeenCalledWith({
+        data: {
+          ...fileData,
+          taskId: 101,
         },
-      );
+      });
       expect(result).toEqual(mockAttachment);
     });
   });
 
   describe('findOne', () => {
     it('should return an attachment when found', async () => {
-      (
-        mockPrismaService.extended.attachment.findFirst as jest.Mock
-      ).mockResolvedValue(mockAttachment);
+      mockPrismaService.extended.attachment.findFirst.mockResolvedValue(mockAttachment);
 
       const result = await service.findOne(1);
 
-      expect(
-        mockPrismaService.extended.attachment.findFirst,
-      ).toHaveBeenCalledWith({
+      expect(mockPrismaService.extended.attachment.findFirst).toHaveBeenCalledWith({
         where: {
           id: 1,
           deletedAt: null,
@@ -109,35 +100,25 @@ describe('AttachmentsService', () => {
     });
 
     it('should throw NotFoundException when attachment not found', async () => {
-      (
-        mockPrismaService.extended.attachment.findFirst as jest.Mock
-      ).mockResolvedValue(null);
+      mockPrismaService.extended.attachment.findFirst.mockResolvedValue(null);
 
       await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw NotFoundException when attachment is soft-deleted', async () => {
-      (
-        mockPrismaService.extended.attachment.findFirst as jest.Mock
-      ).mockResolvedValue(null);
+      mockPrismaService.extended.attachment.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne(1)).rejects.toThrow(
-        'Attachment with ID 1 not found',
-      );
+      await expect(service.findOne(1)).rejects.toThrow('Attachment with ID 1 not found');
     });
   });
 
   describe('remove', () => {
     it('should perform soft delete in database regardless of storage errors', async () => {
       // English: Mock findOne to return the attachment
-      (
-        mockPrismaService.extended.attachment.findFirst as jest.Mock
-      ).mockResolvedValue(mockAttachment);
+      mockPrismaService.extended.attachment.findFirst.mockResolvedValue(mockAttachment);
 
       // English: Mock storage error - should not prevent soft delete
-      (mockStorageService.deleteFile as jest.Mock).mockRejectedValue(
-        new Error('Storage service error'),
-      );
+      mockStorageService.deleteFile.mockRejectedValue(new Error('Storage service error'));
 
       const result = await service.remove(1);
 
@@ -148,9 +129,7 @@ describe('AttachmentsService', () => {
       });
 
       // English: Verify deletion from storage was attempted
-      expect(mockStorageService.deleteFile).toHaveBeenCalledWith(
-        mockAttachment.url,
-      );
+      expect(mockStorageService.deleteFile).toHaveBeenCalledWith(mockAttachment.url);
 
       // English: Verify soft delete result is returned
       expect(result.deletedAt).toBeDefined();
@@ -159,9 +138,7 @@ describe('AttachmentsService', () => {
 
     it('should successfully soft-delete and delete from storage', async () => {
       // English: Mock both operations succeeding
-      (
-        mockPrismaService.extended.attachment.findFirst as jest.Mock
-      ).mockResolvedValue(mockAttachment);
+      mockPrismaService.extended.attachment.findFirst.mockResolvedValue(mockAttachment);
 
       const result = await service.remove(1);
 
@@ -172,9 +149,7 @@ describe('AttachmentsService', () => {
       });
 
       // English: Verify storage deletion was called
-      expect(mockStorageService.deleteFile).toHaveBeenCalledWith(
-        mockAttachment.url,
-      );
+      expect(mockStorageService.deleteFile).toHaveBeenCalledWith(mockAttachment.url);
 
       // English: Verify the result has deletedAt populated
       expect(result).toEqual(
@@ -186,23 +161,15 @@ describe('AttachmentsService', () => {
     });
 
     it('should throw InternalServerErrorException if database update fails', async () => {
-      (
-        mockPrismaService.extended.attachment.findFirst as jest.Mock
-      ).mockResolvedValue(mockAttachment);
+      mockPrismaService.extended.attachment.findFirst.mockResolvedValue(mockAttachment);
 
-      (mockPrismaService.attachment.update as jest.Mock).mockRejectedValue(
-        new Error('Database error'),
-      );
+      mockPrismaService.attachment.update.mockRejectedValue(new Error('Database error'));
 
-      await expect(service.remove(1)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(service.remove(1)).rejects.toThrow(InternalServerErrorException);
     });
 
     it('should throw NotFoundException if attachment does not exist', async () => {
-      (
-        mockPrismaService.extended.attachment.findFirst as jest.Mock
-      ).mockResolvedValue(null);
+      mockPrismaService.extended.attachment.findFirst.mockResolvedValue(null);
 
       await expect(service.remove(999)).rejects.toThrow(NotFoundException);
     });
@@ -211,14 +178,10 @@ describe('AttachmentsService', () => {
       const loggerSpy = jest.spyOn(service['logger'], 'warn');
 
       // English: Setup mocks
-      (
-        mockPrismaService.extended.attachment.findFirst as jest.Mock
-      ).mockResolvedValue(mockAttachment);
+      mockPrismaService.extended.attachment.findFirst.mockResolvedValue(mockAttachment);
 
       // English: Make storage deletion fail
-      (mockStorageService.deleteFile as jest.Mock).mockRejectedValue(
-        new Error('Storage connection timeout'),
-      );
+      mockStorageService.deleteFile.mockRejectedValue(new Error('Storage connection timeout'));
 
       // English: Make database update succeed
       const softDeletedAttachment = {
@@ -226,9 +189,7 @@ describe('AttachmentsService', () => {
         deletedAt: new Date('2026-01-24T12:26:16.240Z'),
         updatedAt: new Date('2026-01-24T12:26:16.242Z'),
       };
-      (mockPrismaService.attachment.update as jest.Mock).mockResolvedValue(
-        softDeletedAttachment,
-      );
+      mockPrismaService.attachment.update.mockResolvedValue(softDeletedAttachment);
 
       const result = await service.remove(1);
 

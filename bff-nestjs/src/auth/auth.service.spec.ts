@@ -46,7 +46,9 @@ describe('AuthService', () => {
 
     mockConfig = {
       get: jest.fn((key: string) => {
-        if (key === 'NODE_ENV') return 'development';
+        if (key === 'NODE_ENV') {
+          return 'development';
+        }
         return 'secret';
       }) as jest.Mock,
     };
@@ -103,9 +105,9 @@ describe('AuthService', () => {
   describe('signinLocal', () => {
     it('should throw ForbiddenException if user not found', async () => {
       mockPrisma.extended.user.findUnique.mockResolvedValue(null);
-      await expect(
-        service.signinLocal({ email: 'x@x.com' } as any, mockResponse),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.signinLocal({ email: 'x@x.com' } as any, mockResponse)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw ForbiddenException if password fails', async () => {
@@ -115,10 +117,7 @@ describe('AuthService', () => {
       (argon2.verify as jest.Mock).mockResolvedValue(false);
 
       await expect(
-        service.signinLocal(
-          { email: 'x@x.com', password: '123' } as any,
-          mockResponse,
-        ),
+        service.signinLocal({ email: 'x@x.com', password: '123' } as any, mockResponse),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -136,9 +135,9 @@ describe('AuthService', () => {
       mockPrisma.extended.user.findUnique.mockResolvedValue({
         refreshTokenHash: null,
       });
-      await expect(
-        service.refreshTokens(1, 'rt', mockResponse),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.refreshTokens(1, 'rt', mockResponse)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw ForbiddenException if RT match fails', async () => {
@@ -146,9 +145,9 @@ describe('AuthService', () => {
         refreshTokenHash: 'hash',
       });
       (argon2.verify as jest.Mock).mockResolvedValue(false);
-      await expect(
-        service.refreshTokens(1, 'rt', mockResponse),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.refreshTokens(1, 'rt', mockResponse)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 

@@ -1,9 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-} from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -58,9 +54,7 @@ export class StorageService {
       const markerIndex = fileUrl.indexOf(bucketMarker);
 
       if (markerIndex === -1) {
-        throw new Error(
-          `Bucket marker "${bucketMarker}" not found in URL: ${fileUrl}`,
-        );
+        throw new Error(`Bucket marker "${bucketMarker}" not found in URL: ${fileUrl}`);
       }
 
       // English: Extract everything after the bucket name (the file key)
@@ -77,8 +71,7 @@ export class StorageService {
 
       this.logger.log(`Successfully deleted file: ${fileKey}`);
     } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Cloud Delete Error: ${errorMessage}`);
       throw error;
     }

@@ -62,14 +62,9 @@ export class AttachmentsService {
       // If this fails, it's logged but doesn't affect the main operation
       try {
         await this.storageService.deleteFile(attachment.url);
-        this.logger.log(
-          `Successfully deleted attachment ${id} from cloud storage`,
-        );
+        this.logger.log(`Successfully deleted attachment ${id} from cloud storage`);
       } catch (storageError: unknown) {
-        const errorMessage =
-          storageError instanceof Error
-            ? storageError.message
-            : 'Unknown error';
+        const errorMessage = storageError instanceof Error ? storageError.message : 'Unknown error';
         this.logger.warn(
           `Failed to delete attachment ${id} from storage (soft delete completed): ${errorMessage}`,
         );
@@ -79,12 +74,9 @@ export class AttachmentsService {
 
       return deletedAttachment;
     } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error deleting attachment ${id}: ${errorMessage}`);
-      throw new InternalServerErrorException(
-        'Failed to remove attachment from database',
-      );
+      throw new InternalServerErrorException('Failed to remove attachment from database');
     }
   }
 }

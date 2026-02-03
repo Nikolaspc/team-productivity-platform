@@ -5,6 +5,6 @@ export const GetCurrentUserRole = createParamDecorator(
   (data: unknown, context: ExecutionContext): Role | null => {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-    return user ? (user as any).role : null;
+    return user ? user.role : null;
   },
 );

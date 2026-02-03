@@ -22,9 +22,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const nodeEnv = this.configService.get<string>('NODE_ENV');
 
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     // English: In production, we must hide specific error details for non-HTTP exceptions (GDPR/Security)
     let message = 'Internal server error';
@@ -33,8 +31,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = typeof res === 'object' ? (res as any).message : res;
     } else if (nodeEnv !== 'production') {
       // English: Show detailed error only in development/test
-      message =
-        exception instanceof Error ? exception.message : String(exception);
+      message = exception instanceof Error ? exception.message : String(exception);
     }
 
     const errorResponse = {

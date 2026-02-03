@@ -18,10 +18,7 @@ describe('DashboardService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        DashboardService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [DashboardService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<DashboardService>(DashboardService);
@@ -47,9 +44,7 @@ describe('DashboardService', () => {
       ],
     };
 
-    (mockPrisma.extended.team.findUnique as jest.Mock).mockResolvedValue(
-      mockTeam,
-    );
+    mockPrisma.extended.team.findUnique.mockResolvedValue(mockTeam);
 
     const result = await service.getTeamStats(1);
 
@@ -64,16 +59,14 @@ describe('DashboardService', () => {
       name: 'Empty Team',
       projects: [{ id: 1, name: 'Empty P', _count: { tasks: 0 }, tasks: [] }],
     };
-    (mockPrisma.extended.team.findUnique as jest.Mock).mockResolvedValue(
-      mockTeam,
-    );
+    mockPrisma.extended.team.findUnique.mockResolvedValue(mockTeam);
 
     const result = await service.getTeamStats(1);
     expect(result.projects[0].progress).toBe(0);
   });
 
   it('should throw NotFoundException if team does not exist', async () => {
-    (mockPrisma.extended.team.findUnique as jest.Mock).mockResolvedValue(null);
+    mockPrisma.extended.team.findUnique.mockResolvedValue(null);
     await expect(service.getTeamStats(999)).rejects.toThrow(NotFoundException);
   });
 });

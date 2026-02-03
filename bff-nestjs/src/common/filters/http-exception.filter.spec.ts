@@ -32,7 +32,9 @@ describe('AllExceptionsFilter', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn((key: string) => {
-              if (key === 'NODE_ENV') return 'development';
+              if (key === 'NODE_ENV') {
+                return 'development';
+              }
               return null;
             }),
           },
@@ -50,10 +52,7 @@ describe('AllExceptionsFilter', () => {
   });
 
   it('should catch HttpException and return formatted response', () => {
-    const exception = new HttpException(
-      'Forbidden Access',
-      HttpStatus.FORBIDDEN,
-    );
+    const exception = new HttpException('Forbidden Access', HttpStatus.FORBIDDEN);
 
     filter.catch(exception, mockArgumentsHost);
 
@@ -99,9 +98,7 @@ describe('AllExceptionsFilter', () => {
     filter.catch(exception, mockArgumentsHost);
 
     expect(loggerSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        '[POST] /test-url - Status: 500 - Error: Critical failure',
-      ),
+      expect.stringContaining('[POST] /test-url - Status: 500 - Error: Critical failure'),
       exception.stack,
     );
   });

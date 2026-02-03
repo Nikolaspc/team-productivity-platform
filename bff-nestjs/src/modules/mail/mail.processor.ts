@@ -18,11 +18,7 @@ export class MailProcessor extends WorkerHost {
     switch (job.name) {
       case 'send-invitation':
         const { email, token, teamName } = job.data;
-        return await this.mailService.sendInvitationEmail(
-          email,
-          teamName,
-          token,
-        );
+        return await this.mailService.sendInvitationEmail(email, teamName, token);
 
       default:
         this.logger.warn(`Unknown job name: ${job.name}`);

@@ -19,10 +19,7 @@ export class NotificationsGateway {
 
   // English: Client joins a specific room for their team
   @SubscribeMessage('joinTeam')
-  handleJoinTeam(
-    @MessageBody('teamId') teamId: number,
-    @ConnectedSocket() client: Socket,
-  ) {
+  handleJoinTeam(@MessageBody('teamId') teamId: number, @ConnectedSocket() client: Socket) {
     const room = `team_${teamId}`;
     client.join(room);
     this.logger.log(`Client ${client.id} joined room: ${room}`);

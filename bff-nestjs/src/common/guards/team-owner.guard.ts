@@ -18,7 +18,9 @@ export class TeamOwnerGuard implements CanActivate {
     const user = request.user;
 
     // English: Global Admins can bypass owner checks (Enterprise Standard)
-    if (user?.role === Role.ADMIN) return true;
+    if (user?.role === Role.ADMIN) {
+      return true;
+    }
 
     const userId = user?.sub;
     const teamIdRaw = request.params.id || request.params.teamId;
@@ -40,9 +42,7 @@ export class TeamOwnerGuard implements CanActivate {
     }
 
     if (membership.role !== TeamRole.OWNER) {
-      throw new ForbiddenException(
-        'Only the team OWNER can perform this action',
-      );
+      throw new ForbiddenException('Only the team OWNER can perform this action');
     }
 
     return true;

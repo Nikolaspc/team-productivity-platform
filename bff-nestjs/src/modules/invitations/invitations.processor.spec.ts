@@ -13,10 +13,7 @@ describe('InvitationsProcessor', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        InvitationsProcessor,
-        { provide: MailService, useValue: mockMailService },
-      ],
+      providers: [InvitationsProcessor, { provide: MailService, useValue: mockMailService }],
     }).compile();
 
     processor = module.get<InvitationsProcessor>(InvitationsProcessor);
@@ -32,11 +29,7 @@ describe('InvitationsProcessor', () => {
 
     await processor.process(job);
 
-    expect(mailService.sendInvitationEmail).toHaveBeenCalledWith(
-      'test@test.com',
-      'Team A',
-      '123',
-    );
+    expect(mailService.sendInvitationEmail).toHaveBeenCalledWith('test@test.com', 'Team A', '123');
   });
 
   it('should log warning for unknown job name', async () => {
@@ -45,8 +38,6 @@ describe('InvitationsProcessor', () => {
 
     await processor.process(job);
 
-    expect(loggerSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Unknown job name'),
-    );
+    expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Unknown job name'));
   });
 });

@@ -1,9 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { WsException } from '@nestjs/websockets';
@@ -23,13 +18,10 @@ export class WsJwtGuard implements CanActivate {
 
       // English: Extract token from handshake auth or headers (standard WS Auth flow)
       const token =
-        client.handshake?.auth?.token ||
-        client.handshake?.headers?.authorization?.split(' ')[1];
+        client.handshake?.auth?.token || client.handshake?.headers?.authorization?.split(' ')[1];
 
       if (!token) {
-        this.logger.warn(
-          'WebSocket connection attempt rejected: No token provided',
-        );
+        this.logger.warn('WebSocket connection attempt rejected: No token provided');
         throw new WsException('Unauthorized');
       }
 
@@ -44,8 +36,7 @@ export class WsJwtGuard implements CanActivate {
       return true;
     } catch (error: unknown) {
       // English: Handle unknown error type to ensure production stability
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`WebSocket JWT Verification failed: ${errorMessage}`);
 
       throw new WsException('Unauthorized');

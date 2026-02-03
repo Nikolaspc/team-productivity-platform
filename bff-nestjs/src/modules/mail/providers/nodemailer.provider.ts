@@ -1,10 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
-import {
-  IMailProvider,
-  IMailOptions,
-} from '../interfaces/mail-provider.interface';
+import { IMailProvider, IMailOptions } from '../interfaces/mail-provider.interface';
 
 @Injectable()
 export class NodemailerProvider implements IMailProvider {
@@ -41,14 +38,10 @@ export class NodemailerProvider implements IMailProvider {
       this.logger.log(`Email successfully sent to ${options.to}`);
     } catch (error: unknown) {
       // English: Type Guard to safely handle 'unknown' error type (TS18046)
-      const errorMessage =
-        error instanceof Error ? error.message : 'An unknown error occurred';
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       const errorStack = error instanceof Error ? error.stack : undefined;
 
-      this.logger.error(
-        `Failed to send email to ${options.to}: ${errorMessage}`,
-        errorStack,
-      );
+      this.logger.error(`Failed to send email to ${options.to}: ${errorMessage}`, errorStack);
 
       // English: Rethrow the error after logging to allow the caller or BullMQ to handle retries
       throw error;

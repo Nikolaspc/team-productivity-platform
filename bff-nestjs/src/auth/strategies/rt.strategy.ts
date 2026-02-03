@@ -18,7 +18,9 @@ export class RtStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   // English: Improved typing for strict mode
   validate(req: Request, payload: any) {
     const authHeader = req.get('authorization');
-    if (!authHeader) throw new ForbiddenException('Refresh token missing');
+    if (!authHeader) {
+      throw new ForbiddenException('Refresh token missing');
+    }
 
     const refreshToken = authHeader.replace('Bearer', '').trim();
 

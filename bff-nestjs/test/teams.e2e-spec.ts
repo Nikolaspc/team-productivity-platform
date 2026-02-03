@@ -28,12 +28,10 @@ describe('Teams (e2e)', () => {
 
     // Setup: User & Auth
     await request(app.getHttpServer()).post('/auth/signup').send(testUser);
-    const loginRes = await request(app.getHttpServer())
-      .post('/auth/signin')
-      .send({
-        email: testUser.email,
-        password: testUser.password,
-      });
+    const loginRes = await request(app.getHttpServer()).post('/auth/signin').send({
+      email: testUser.email,
+      password: testUser.password,
+    });
     accessToken = loginRes.body.access_token;
 
     const user = await prisma.user.findUnique({
@@ -72,9 +70,7 @@ describe('Teams (e2e)', () => {
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.some((t: any) => t.name === 'Alpha Team')).toBe(
-        true,
-      );
+      expect(response.body.some((t: any) => t.name === 'Alpha Team')).toBe(true);
     });
   });
 });

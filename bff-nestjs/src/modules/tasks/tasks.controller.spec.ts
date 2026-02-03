@@ -69,10 +69,7 @@ describe('TasksController', () => {
 
       await controller.findAll(projectId, mockUserId);
 
-      expect(tasksService.findAllByProject).toHaveBeenCalledWith(
-        mockUserId,
-        projectId,
-      );
+      expect(tasksService.findAllByProject).toHaveBeenCalledWith(mockUserId, projectId);
     });
   });
 

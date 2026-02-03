@@ -14,13 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiConsumes,
-  ApiBody,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { StorageService } from '../../storage/storage.service';
@@ -87,9 +81,7 @@ export class TasksController {
 
   @Delete('attachments/:attachmentId')
   @ApiOperation({ summary: 'Remove an attachment from a task' })
-  async removeAttachment(
-    @Param('attachmentId', ParseIntPipe) attachmentId: number,
-  ) {
+  async removeAttachment(@Param('attachmentId', ParseIntPipe) attachmentId: number) {
     // English: Deletes from both storage provider and database
     return this.tasksService.removeAttachment(attachmentId);
   }

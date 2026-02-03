@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  UseGuards,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
@@ -34,10 +26,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  logout(
-    @GetCurrentUserId() userId: number,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  logout(@GetCurrentUserId() userId: number, @Res({ passthrough: true }) res: Response) {
     return this.authService.logout(userId, res);
   }
 

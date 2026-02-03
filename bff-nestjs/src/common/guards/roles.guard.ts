@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role, TeamRole } from '@prisma/client'; // Import both
 import { ROLES_KEY } from '../decorators/roles.decorator';
@@ -23,7 +18,9 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
+    if (isPublic) {
+      return true;
+    }
 
     // 2. Get required roles from decorator
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
@@ -36,7 +33,9 @@ export class RolesGuard implements CanActivate {
     const teamId = parseInt(request.params.teamId);
 
     // 3. Global Admin Bypass (Enterprise Standard)
-    if (user?.role === Role.ADMIN) return true;
+    if (user?.role === Role.ADMIN) {
+      return true;
+    }
 
     // 4. Validate Global Roles (if @Roles is present)
     if (requiredRoles && !requiredRoles.some((role) => user.role === role)) {

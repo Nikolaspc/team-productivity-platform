@@ -16,9 +16,7 @@ describe('InvitationsController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [InvitationsController],
-      providers: [
-        { provide: InvitationsService, useValue: mockInvitationsService },
-      ],
+      providers: [{ provide: InvitationsService, useValue: mockInvitationsService }],
     })
       .overrideGuard(AtGuard)
       .useValue({ canActivate: () => true })
@@ -31,12 +29,7 @@ describe('InvitationsController', () => {
   it('should call createInvitation service', async () => {
     const dto = { email: 'test@test.com', role: TeamRole.MEMBER };
     await controller.invite(1, 10, dto);
-    expect(service.createInvitation).toHaveBeenCalledWith(
-      1,
-      10,
-      dto.email,
-      dto.role,
-    );
+    expect(service.createInvitation).toHaveBeenCalledWith(1, 10, dto.email, dto.role);
   });
 
   it('should call acceptInvitation service', async () => {

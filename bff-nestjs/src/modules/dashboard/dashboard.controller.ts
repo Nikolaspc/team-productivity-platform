@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';

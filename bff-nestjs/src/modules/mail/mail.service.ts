@@ -5,9 +5,7 @@ import { IQueueService } from '@/common/infrastructure/queues/queue.interface';
 export class MailService {
   private readonly logger = new Logger(MailService.name);
 
-  constructor(
-    @Inject('MAIL_QUEUE') private readonly mailQueue: IQueueService,
-  ) {}
+  constructor(@Inject('MAIL_QUEUE') private readonly mailQueue: IQueueService) {}
 
   /**
    * English: Sends a welcome email to a new user.
@@ -22,14 +20,8 @@ export class MailService {
    * English: Sends a team invitation email.
    * This is the method causing the TS2339 error.
    */
-  async sendInvitationEmail(
-    email: string,
-    teamName: string,
-    inviteUrl: string,
-  ) {
-    this.logger.log(
-      `Scheduling invitation email for: ${email} to join ${teamName}`,
-    );
+  async sendInvitationEmail(email: string, teamName: string, inviteUrl: string) {
+    this.logger.log(`Scheduling invitation email for: ${email} to join ${teamName}`);
 
     // English: We dispatch the job. The Processor will pick this up.
     await this.mailQueue.addJob('send-invitation', {

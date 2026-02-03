@@ -17,11 +17,11 @@ export class AtGuard extends AuthGuard('jwt') {
     ]);
 
     // English: Log for debugging
-    console.log(
-      `--- AtGuard --- Route: ${context.getHandler().name} | Public: ${isPublic}`,
-    );
+    console.log(`--- AtGuard --- Route: ${context.getHandler().name} | Public: ${isPublic}`);
 
-    if (isPublic) return true;
+    if (isPublic) {
+      return true;
+    }
 
     return super.canActivate(context);
   }

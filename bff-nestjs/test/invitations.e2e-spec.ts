@@ -38,9 +38,7 @@ describe('Invitations (e2e)', () => {
     // 1. Create Owner and Team
     await request(app.getHttpServer()).post('/auth/signup').send(ownerUser);
 
-    const loginOwner = await request(app.getHttpServer())
-      .post('/auth/signin')
-      .send(ownerUser);
+    const loginOwner = await request(app.getHttpServer()).post('/auth/signin').send(ownerUser);
 
     ownerToken = loginOwner.body.access_token;
 
@@ -63,9 +61,7 @@ describe('Invitations (e2e)', () => {
     // 2. Create Guest User
     await request(app.getHttpServer()).post('/auth/signup').send(guestUser);
 
-    const loginGuest = await request(app.getHttpServer())
-      .post('/auth/signin')
-      .send(guestUser);
+    const loginGuest = await request(app.getHttpServer()).post('/auth/signin').send(guestUser);
 
     guestToken = loginGuest.body.access_token;
   });

@@ -4,11 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { MailService } from '../mail/mail.service';
-import {
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { TeamRole, InvitationStatus } from '@prisma/client';
 
 describe('InvitationsService', () => {
@@ -85,11 +81,7 @@ describe('InvitationsService', () => {
       });
       (prisma.invitation.create as jest.Mock).mockResolvedValue({ id: 500 });
 
-      const result = await service.createInvitation(
-        mockTeamId,
-        mockInviterId,
-        mockEmail,
-      );
+      const result = await service.createInvitation(mockTeamId, mockInviterId, mockEmail);
 
       expect(result.message).toBe('Invitation sent successfully');
       expect(result.invitationId).toBe(500);
@@ -99,9 +91,9 @@ describe('InvitationsService', () => {
     it('should throw NotFoundException if team does not exist', async () => {
       (prisma.team.findUnique as jest.Mock).mockResolvedValue(null);
 
-      await expect(
-        service.createInvitation(999, mockInviterId, mockEmail),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.createInvitation(999, mockInviterId, mockEmail)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException if inviter is not team owner', async () => {
@@ -119,9 +111,9 @@ describe('InvitationsService', () => {
 
       (prisma.team.findUnique as jest.Mock).mockResolvedValue(mockTeam);
 
-      await expect(
-        service.createInvitation(mockTeamId, mockInviterId, mockEmail),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.createInvitation(mockTeamId, mockInviterId, mockEmail)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw BadRequestException if user is already a member', async () => {
@@ -140,9 +132,9 @@ describe('InvitationsService', () => {
       (prisma.team.findUnique as jest.Mock).mockResolvedValue(mockTeam);
       (prisma.teamMember.findFirst as jest.Mock).mockResolvedValue({ id: 1 });
 
-      await expect(
-        service.createInvitation(mockTeamId, mockInviterId, mockEmail),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createInvitation(mockTeamId, mockInviterId, mockEmail)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException if user tries to invite themselves', async () => {
@@ -165,9 +157,9 @@ describe('InvitationsService', () => {
         email: mockEmail,
       });
 
-      await expect(
-        service.createInvitation(mockTeamId, mockInviterId, mockEmail),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createInvitation(mockTeamId, mockInviterId, mockEmail)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -187,9 +179,7 @@ describe('InvitationsService', () => {
 
     it('should accept an invitation successfully', async () => {
       (jwt.verifyAsync as jest.Mock).mockResolvedValue(mockPayload);
-      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue(
-        mockInvitationDb,
-      );
+      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue(mockInvitationDb);
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: mockUserId,
         email: mockEmail,
@@ -204,17 +194,15 @@ describe('InvitationsService', () => {
 
     it('should throw ForbiddenException if email in token does not match user email', async () => {
       (jwt.verifyAsync as jest.Mock).mockResolvedValue(mockPayload);
-      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue(
-        mockInvitationDb,
-      );
+      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue(mockInvitationDb);
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: mockUserId,
         email: 'other@test.com',
       });
 
-      await expect(
-        service.acceptInvitation(mockToken, mockUserId),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.acceptInvitation(mockToken, mockUserId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw BadRequestException if invitation is already accepted', async () => {
@@ -224,9 +212,9 @@ describe('InvitationsService', () => {
         status: InvitationStatus.ACCEPTED,
       });
 
-      await expect(
-        service.acceptInvitation(mockToken, mockUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.acceptInvitation(mockToken, mockUserId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException if token is expired (JWT error)', async () => {
@@ -234,21 +222,19 @@ describe('InvitationsService', () => {
       error.name = 'TokenExpiredError';
       (jwt.verifyAsync as jest.Mock).mockRejectedValue(error);
 
-      await expect(
-        service.acceptInvitation('expired', mockUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.acceptInvitation('expired', mockUserId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw NotFoundException if user is not found', async () => {
       (jwt.verifyAsync as jest.Mock).mockResolvedValue(mockPayload);
-      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue(
-        mockInvitationDb,
-      );
+      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue(mockInvitationDb);
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
-      await expect(
-        service.acceptInvitation(mockToken, mockUserId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.acceptInvitation(mockToken, mockUserId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

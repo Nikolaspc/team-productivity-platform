@@ -24,9 +24,7 @@ describe('Tasks (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, transform: true }),
-    );
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     app.use(cookieParser());
     await app.init();
     prisma = app.get<PrismaService>(PrismaService);
@@ -34,12 +32,10 @@ describe('Tasks (e2e)', () => {
     // --- SETUP: Create User, Team and Project ---
     // 1. Signup & Signin
     await request(app.getHttpServer()).post('/auth/signup').send(testUser);
-    const loginRes = await request(app.getHttpServer())
-      .post('/auth/signin')
-      .send({
-        email: testUser.email,
-        password: testUser.password,
-      });
+    const loginRes = await request(app.getHttpServer()).post('/auth/signin').send({
+      email: testUser.email,
+      password: testUser.password,
+    });
     accessToken = loginRes.body.access_token;
 
     const user = await prisma.user.findUnique({

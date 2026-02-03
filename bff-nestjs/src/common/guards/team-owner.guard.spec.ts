@@ -2,11 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TeamOwnerGuard } from './team-owner.guard';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  ExecutionContext,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ExecutionContext, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TeamRole } from '@prisma/client';
 
 describe('TeamOwnerGuard', () => {
@@ -23,20 +19,14 @@ describe('TeamOwnerGuard', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TeamOwnerGuard,
-        { provide: PrismaService, useValue: mockPrismaService },
-      ],
+      providers: [TeamOwnerGuard, { provide: PrismaService, useValue: mockPrismaService }],
     }).compile();
 
     guard = module.get<TeamOwnerGuard>(TeamOwnerGuard);
     prisma = module.get<PrismaService>(PrismaService);
   });
 
-  const createMockContext = (
-    userId: number,
-    teamId: string,
-  ): ExecutionContext =>
+  const createMockContext = (userId: number, teamId: string): ExecutionContext =>
     ({
       switchToHttp: () => ({
         getRequest: () => ({
@@ -67,9 +57,7 @@ describe('TeamOwnerGuard', () => {
     });
 
     const context = createMockContext(1, '10');
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
   });
 
   it('should throw NotFoundException if membership does not exist', async () => {

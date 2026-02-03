@@ -56,9 +56,7 @@ describe('TasksService', () => {
       mockPrisma.extended.project.findUnique.mockResolvedValue({
         team: { members: [] },
       });
-      await expect(service.create(1, { projectId: 1 } as any)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.create(1, { projectId: 1 } as any)).rejects.toThrow(ForbiddenException);
     });
 
     it('should handle notification failure (Line 47-51)', async () => {
@@ -85,9 +83,7 @@ describe('TasksService', () => {
   describe('addAttachment', () => {
     it('should throw NotFoundException if task not found (Line 76)', async () => {
       mockPrisma.extended.task.findUnique.mockResolvedValue(null);
-      await expect(service.addAttachment(999, {} as any)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.addAttachment(999, {} as any)).rejects.toThrow(NotFoundException);
     });
 
     it('should call attachmentsService.create if task exists', async () => {
@@ -106,26 +102,20 @@ describe('TasksService', () => {
       // English: Using a real Error object to hit the 'error instanceof Error' branch on line 89
       mockStorageService.deleteFile.mockRejectedValue(new Error('S3 Fail'));
 
-      await expect(service.removeAttachment(1)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(service.removeAttachment(1)).rejects.toThrow(InternalServerErrorException);
     });
 
     it('should handle non-Error objects in catch (Lines 90-93)', async () => {
       mockAttachmentsService.findOne.mockResolvedValue({ url: 'url' });
       mockStorageService.deleteFile.mockRejectedValue('Fatal String Error');
-      await expect(service.removeAttachment(1)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(service.removeAttachment(1)).rejects.toThrow(InternalServerErrorException);
     });
   });
 
   describe('findAllByProject', () => {
     it('should throw ForbiddenException if project access denied', async () => {
       mockPrisma.extended.project.findFirst.mockResolvedValue(null);
-      await expect(service.findAllByProject(1, 1)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.findAllByProject(1, 1)).rejects.toThrow(ForbiddenException);
     });
 
     it('should return tasks with assignee and attachments', async () => {

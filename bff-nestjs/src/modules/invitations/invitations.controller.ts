@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-  Param,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Param, ParseIntPipe } from '@nestjs/common';
 import { InvitationsService } from './invitations.service';
 import { AtGuard } from '../../auth/guards/at.guard';
 import { GetCurrentUserId } from '../../common/decorators';
@@ -27,20 +20,12 @@ export class InvitationsController {
     @Body() dto: SendInvitationDto,
   ) {
     // English: Changed to createInvitation to match your Service method name
-    return this.invitationsService.createInvitation(
-      teamId,
-      userId,
-      dto.email,
-      dto.role,
-    );
+    return this.invitationsService.createInvitation(teamId, userId, dto.email, dto.role);
   }
 
   @Post('accept')
   @ApiOperation({ summary: 'Accept a team invitation using a token' })
-  async accept(
-    @Body() dto: AcceptInvitationDto,
-    @GetCurrentUserId() userId: number,
-  ) {
+  async accept(@Body() dto: AcceptInvitationDto, @GetCurrentUserId() userId: number) {
     return this.invitationsService.acceptInvitation(dto.token, userId);
   }
 }

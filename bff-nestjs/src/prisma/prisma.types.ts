@@ -10,12 +10,7 @@ import { Prisma } from '@prisma/client';
  * Represents models that support soft delete functionality.
  * Update this union type when adding deletedAt field to new models.
  */
-export type SoftDeleteModel =
-  | 'user'
-  | 'team'
-  | 'project'
-  | 'task'
-  | 'attachment';
+export type SoftDeleteModel = 'user' | 'team' | 'project' | 'task' | 'attachment';
 
 /**
  * Type for Prisma where clauses that include soft-delete filtering.
@@ -53,9 +48,7 @@ export interface SoftDeleteOptions {
  *   where: withoutDeleted({ role: 'ADMIN' })
  * })
  */
-export function withoutDeleted<T extends Record<string, any>>(
-  where?: T,
-): T & { deletedAt: null } {
+export function withoutDeleted<T extends Record<string, any>>(where?: T): T & { deletedAt: null } {
   return {
     ...(where || {}),
     deletedAt: null,

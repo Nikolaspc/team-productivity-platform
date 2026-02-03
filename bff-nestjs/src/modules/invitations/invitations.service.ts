@@ -30,7 +30,9 @@ export class InvitationsService {
       where: { id: teamId },
       include: { members: true },
     });
-    if (!team) throw new NotFoundException('Team not found');
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
 
     // 2. Check that inviter is OWNER of the team
     const inviterMember = team.members.find((m) => m.userId === inviterId);
@@ -47,8 +49,9 @@ export class InvitationsService {
     const existingMember = await this.prisma.teamMember.findFirst({
       where: { teamId, user: { email: lowerEmail } },
     });
-    if (existingMember)
+    if (existingMember) {
       throw new BadRequestException('User is already a member of this team');
+    }
 
     // 4. Check that user is not inviting themselves
     const inviterUser = await this.prisma.user.findUnique({
@@ -77,11 +80,7 @@ export class InvitationsService {
     });
 
     // 7. Send invitation email
-    await this.mailService.sendInvitationEmail(
-      lowerEmail,
-      team.name,
-      invitationToken,
-    );
+    await this.mailService.sendInvitationEmail(lowerEmail, team.name, invitationToken);
 
     return {
       message: 'Invitation sent successfully',
@@ -105,14 +104,14 @@ export class InvitationsService {
         invitation.status === InvitationStatus.ACCEPTED ||
         new Date() > invitation.expiresAt
       ) {
-        throw new BadRequestException(
-          'Invitation invalid, already accepted or expired',
-        );
+        throw new BadRequestException('Invitation invalid, already accepted or expired');
       }
 
       // 3. Get current user
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (!user) throw new NotFoundException('User not found');
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
 
       // 4. Verify email matches
       if (user.email.toLowerCase() !== email.toLowerCase()) {
@@ -141,10 +140,12 @@ export class InvitationsService {
 
       return { message: 'Joined the team successfully' };
     } catch (error: any) {
-      if (error.name === 'JsonWebTokenError')
+      if (error.name === 'JsonWebTokenError') {
         throw new BadRequestException('Invalid invitation token');
-      if (error.name === 'TokenExpiredError')
+      }
+      if (error.name === 'TokenExpiredError') {
         throw new BadRequestException('Invitation token has expired');
+      }
       throw error;
     }
   }

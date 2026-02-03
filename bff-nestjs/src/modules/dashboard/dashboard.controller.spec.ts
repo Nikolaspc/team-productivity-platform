@@ -14,9 +14,7 @@ describe('DashboardController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DashboardController],
-      providers: [
-        { provide: DashboardService, useValue: mockDashboardService },
-      ],
+      providers: [{ provide: DashboardService, useValue: mockDashboardService }],
     })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

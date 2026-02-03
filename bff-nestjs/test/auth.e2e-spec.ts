@@ -78,12 +78,10 @@ describe('AuthController (e2e)', () => {
     });
 
     it('/auth/logout (POST) - Success', async () => {
-      const loginRes = await request(app.getHttpServer())
-        .post('/auth/signin')
-        .send({
-          email: testUser.email,
-          password: testUser.password,
-        });
+      const loginRes = await request(app.getHttpServer()).post('/auth/signin').send({
+        email: testUser.email,
+        password: testUser.password,
+      });
 
       const at = loginRes.body.access_token;
 

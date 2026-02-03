@@ -35,10 +35,7 @@ describe('StorageService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        StorageService,
-        { provide: ConfigService, useValue: mockConfig },
-      ],
+      providers: [StorageService, { provide: ConfigService, useValue: mockConfig }],
     }).compile();
 
     service = module.get<StorageService>(StorageService);
@@ -62,8 +59,7 @@ describe('StorageService', () => {
   });
 
   it('should delete a file successfully', async () => {
-    const fileUrl =
-      'http://localhost:9000/my-bucket/task-attachments/123-test.png';
+    const fileUrl = 'http://localhost:9000/my-bucket/task-attachments/123-test.png';
     await expect(service.deleteFile(fileUrl)).resolves.not.toThrow();
   });
 
@@ -76,12 +72,9 @@ describe('StorageService', () => {
 
   it('should log and rethrow error if S3 delete fails', async () => {
     // Force the send method to reject for this specific test
-    jest
-      .spyOn(s3ClientInstance, 'send')
-      .mockRejectedValueOnce(new Error('S3 Failure'));
+    jest.spyOn(s3ClientInstance, 'send').mockRejectedValueOnce(new Error('S3 Failure'));
 
-    const fileUrl =
-      'http://localhost:9000/my-bucket/task-attachments/123-test.png';
+    const fileUrl = 'http://localhost:9000/my-bucket/task-attachments/123-test.png';
 
     await expect(service.deleteFile(fileUrl)).rejects.toThrow('S3 Failure');
   });

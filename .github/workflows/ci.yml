@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres_password
@@ -24,8 +24,13 @@ jobs:
           --health-retries 5
 
     steps:
+      # ========================================
+      # 1. CHECKOUT & SETUP
+      # ========================================
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
@@ -38,16 +43,21 @@ jobs:
         working-directory: ./bff-nestjs
         run: npm ci
 
+      # ========================================
+      # 2. VALIDATION & LINTING
+      # ========================================
       - name: Initialize Prisma Client
         working-directory: ./bff-nestjs
         run: npx prisma generate
 
       - name: Code Quality Audit (Lint)
         working-directory: ./bff-nestjs
-        continue-on-error: true
         run: npm run lint
 
-      - name: Execute Unit Tests
+      # ========================================
+      # 3. UNIT TESTS WITH COVERAGE
+      # ========================================
+      - name: Execute Unit Tests with Coverage
         working-directory: ./bff-nestjs
         env:
           NODE_ENV: test
@@ -56,14 +66,44 @@ jobs:
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_PASS: ${{ secrets.MAIL_PASS }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
-        run: npm run test -- --passWithNoTests
+        run: npm run test:cov -- --passWithNoTests
 
+      # ========================================
+      # 4. COVERAGE REPORT UPLOAD (Codecov)
+      # ========================================
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./bff-nestjs/coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+        continue-on-error: true
+
+      # ========================================
+      # 5. DATABASE SETUP
+      # ========================================
       - name: Setup Test Database
         working-directory: ./bff-nestjs
         env:
           DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
         run: npx prisma migrate deploy
 
+      # ========================================
+      # 6. INTEGRATION TESTS (Optional)
+      # ========================================
+      - name: Execute Integration Tests
+        working-directory: ./bff-nestjs
+        env:
+          DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
+          NODE_ENV: test
+        run: npm run test:int -- --passWithNoTests
+        continue-on-error: true
+
+      # ========================================
+      # 7. END-TO-END TESTS
+      # ========================================
       - name: Execute End-to-End Tests
         working-directory: ./bff-nestjs
         env:
@@ -79,6 +119,38 @@ jobs:
         run: npm run test:e2e -- --passWithNoTests
         continue-on-error: true
 
+      # ========================================
+      # 8. PRODUCTION BUILD
+      # ========================================
       - name: Build Production Artifact
         working-directory: ./bff-nestjs
         run: npm run build
+
+      # ========================================
+      # 9. ARTIFACT PERSISTENCE
+      # ========================================
+      - name: Upload Coverage Report as Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.run_id }}
+          path: bff-nestjs/coverage/
+          retention-days: 30
+        continue-on-error: true
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.run_id }}
+          path: bff-nestjs/dist/
+          retention-days: 7
+        continue-on-error: true
+
+      - name: Upload Test Results as Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_id }}
+          path: bff-nestjs/test-results/
+          retention-days: 7
+        continue-on-error: true

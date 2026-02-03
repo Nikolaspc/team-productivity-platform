@@ -41,9 +41,7 @@ describe('RolesGuard', () => {
   });
 
   it('should allow access if user is global ADMIN', async () => {
-    mockReflector.getAllAndOverride
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(null);
+    mockReflector.getAllAndOverride.mockReturnValueOnce(false).mockReturnValueOnce(null);
     const context = createMockContext({ role: Role.ADMIN });
     expect(await guard.canActivate(context)).toBe(true);
   });
@@ -54,9 +52,7 @@ describe('RolesGuard', () => {
       .mockReturnValueOnce([Role.ADMIN]); // requiredRoles
 
     const context = createMockContext({ role: Role.USER });
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
   });
 
   it('should validate team membership if teamId is present', async () => {
@@ -80,8 +76,6 @@ describe('RolesGuard', () => {
 
     mockPrisma.teamMember.findUnique.mockResolvedValue(null);
 
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      'You are not a member of this team',
-    );
+    await expect(guard.canActivate(context)).rejects.toThrow('You are not a member of this team');
   });
 });
