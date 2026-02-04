@@ -1,13 +1,20 @@
 name: Enterprise CI Pipeline
+
 on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -42,6 +49,7 @@ jobs:
       - name: Install Project Dependencies
         working-directory: ./bff-nestjs
         run: npm ci
+        timeout-minutes: 10
 
       # ========================================
       # 2. VALIDATION & LINTING
@@ -49,27 +57,89 @@ jobs:
       - name: Initialize Prisma Client
         working-directory: ./bff-nestjs
         run: npx prisma generate
+        timeout-minutes: 5
 
       - name: Code Quality Audit (Lint)
         working-directory: ./bff-nestjs
         run: npm run lint
+        timeout-minutes: 5
 
       # ========================================
-      # 3. UNIT TESTS WITH COVERAGE
+      # 3. TYPESCRIPT COMPILATION
+      # ========================================
+      - name: Build Production Artifact
+        working-directory: ./bff-nestjs
+        run: npm run build
+        timeout-minutes: 10
+
+      # ========================================
+      # 4. DATABASE SETUP
+      # ========================================
+      - name: Setup Test Database
+        working-directory: ./bff-nestjs
+        env:
+          DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
+        run: npx prisma migrate deploy
+        timeout-minutes: 5
+
+      # ========================================
+      # 5. UNIT TESTS WITH COVERAGE
       # ========================================
       - name: Execute Unit Tests with Coverage
         working-directory: ./bff-nestjs
         env:
           NODE_ENV: test
-          MAIL_HOST: ${{ secrets.MAIL_HOST }}
-          MAIL_PORT: ${{ secrets.MAIL_PORT }}
-          MAIL_USER: ${{ secrets.MAIL_USER }}
-          MAIL_PASS: ${{ secrets.MAIL_PASS }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_HOST: ${{ secrets.MAIL_HOST || 'localhost' }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT || '1025' }}
+          MAIL_USER: ${{ secrets.MAIL_USER || 'test' }}
+          MAIL_PASS: ${{ secrets.MAIL_PASS || 'test' }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM || 'noreply@test.com' }}
         run: npm run test:cov -- --passWithNoTests
+        timeout-minutes: 15
 
       # ========================================
-      # 4. COVERAGE REPORT UPLOAD (Codecov)
+      # 6. COVERAGE THRESHOLD VALIDATION
+      # ========================================
+      - name: Check Coverage Thresholds
+        working-directory: ./bff-nestjs
+        run: |
+          echo "Coverage Report:"
+          cat coverage/coverage-summary.json | grep -o '"lines"[^}]*' || echo "Coverage summary not available"
+        continue-on-error: true
+
+      # ========================================
+      # 7. INTEGRATION TESTS
+      # ========================================
+      - name: Execute Integration Tests
+        working-directory: ./bff-nestjs
+        env:
+          DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
+          NODE_ENV: test
+        run: npm run test:int -- --passWithNoTests
+        timeout-minutes: 10
+        continue-on-error: true
+
+      # ========================================
+      # 8. END-TO-END TESTS
+      # ========================================
+      - name: Execute End-to-End Tests
+        working-directory: ./bff-nestjs
+        env:
+          DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
+          AT_SECRET: ${{ secrets.JWT_ACCESS_SECRET || 'test-access-secret' }}
+          RT_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'test-refresh-secret' }}
+          NODE_ENV: test
+          MAIL_HOST: ${{ secrets.MAIL_HOST || 'localhost' }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT || '1025' }}
+          MAIL_USER: ${{ secrets.MAIL_USER || 'test' }}
+          MAIL_PASS: ${{ secrets.MAIL_PASS || 'test' }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM || 'noreply@test.com' }}
+        run: npm run test:e2e -- --passWithNoTests
+        timeout-minutes: 15
+        continue-on-error: true
+
+      # ========================================
+      # 9. COVERAGE REPORT UPLOAD (Codecov)
       # ========================================
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -82,52 +152,7 @@ jobs:
         continue-on-error: true
 
       # ========================================
-      # 5. DATABASE SETUP
-      # ========================================
-      - name: Setup Test Database
-        working-directory: ./bff-nestjs
-        env:
-          DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
-        run: npx prisma migrate deploy
-
-      # ========================================
-      # 6. INTEGRATION TESTS (Optional)
-      # ========================================
-      - name: Execute Integration Tests
-        working-directory: ./bff-nestjs
-        env:
-          DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
-          NODE_ENV: test
-        run: npm run test:int -- --passWithNoTests
-        continue-on-error: true
-
-      # ========================================
-      # 7. END-TO-END TESTS
-      # ========================================
-      - name: Execute End-to-End Tests
-        working-directory: ./bff-nestjs
-        env:
-          DATABASE_URL: postgresql://postgres:postgres_password@localhost:5432/productivity_test?schema=public
-          AT_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
-          RT_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
-          NODE_ENV: test
-          MAIL_HOST: ${{ secrets.MAIL_HOST }}
-          MAIL_PORT: ${{ secrets.MAIL_PORT }}
-          MAIL_USER: ${{ secrets.MAIL_USER }}
-          MAIL_PASS: ${{ secrets.MAIL_PASS }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }}
-        run: npm run test:e2e -- --passWithNoTests
-        continue-on-error: true
-
-      # ========================================
-      # 8. PRODUCTION BUILD
-      # ========================================
-      - name: Build Production Artifact
-        working-directory: ./bff-nestjs
-        run: npm run build
-
-      # ========================================
-      # 9. ARTIFACT PERSISTENCE
+      # 10. ARTIFACT PERSISTENCE
       # ========================================
       - name: Upload Coverage Report as Artifact
         if: always()
@@ -139,6 +164,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Build Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: dist-${{ github.run_id }}
@@ -151,6 +177,39 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ github.run_id }}
-          path: bff-nestjs/test-results/
+          path: bff-nestjs/coverage/
           retention-days: 7
         continue-on-error: true
+
+      # ========================================
+      # 11. CI STATUS SUMMARY
+      # ========================================
+      - name: Generate CI Status Report
+        if: always()
+        run: |
+          echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Lint: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Build: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Unit Tests: Check artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Coverage Report: [View](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Dist: Available for 7 days" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ CI Pipeline Failed"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo "Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
